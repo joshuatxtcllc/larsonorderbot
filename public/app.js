@@ -1,33 +1,13 @@
-// server.js
-const express = require('express');
-const path = require('path');
-const app = express();
 
-// Serve static files from the public directory
-app.use(express.static('public'));
-
-// Serve index.html for the root route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-
-// public/script.js (This file needs to be created)
+// Wait for the DOM to fully load before executing any JavaScript
 document.addEventListener('DOMContentLoaded', function() {
-  // Counter for generating unique IDs for new order forms
   let orderCount = 1;
   
-  // Initialize Bootstrap tooltips
+  // Initialize tooltips
   const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
   const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
   
-  // Add another frame order button click handler
+  // Add another frame order
   document.getElementById('addOrderBtn').addEventListener('click', function() {
     const ordersContainer = document.getElementById('ordersContainer');
     const newOrder = document.createElement('div');
