@@ -1,3 +1,22 @@
+const express = require('express');
+const path = require('path');
+const app = express();
+
+// Serve static files from the public directory
+app.use(express.static('public'));
+
+// Serve index.html for the root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+
 // Wait for the DOM to fully load before executing any JavaScript
 document.addEventListener('DOMContentLoaded', function() {
   // Counter for generating unique IDs for new order forms
@@ -55,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     orderCount++;
-
+    
     // Enable all remove buttons when there's more than one order
     document.querySelectorAll('.remove-order').forEach(btn => {
       btn.disabled = false;
@@ -77,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
-
+  
   // Form submission
   document.getElementById('orderForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -87,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
     submitBtn.disabled = true;
-
+    
     try {
       // Form validation
       const forms = document.querySelectorAll('.frame-order');
@@ -101,11 +120,11 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         });
       });
-
+      
       if (hasError) {
         throw new Error('Please fill in all required fields correctly');
       }
-
+      
       // Continue with form submission...
     } catch (error) {
       console.error('Form submission error:', error);
@@ -113,3 +132,5 @@ document.addEventListener('DOMContentLoaded', function() {
       submitBtn.disabled = false;
       alert(error.message || 'An error occurred while processing your order');
     }
+  });
+});
