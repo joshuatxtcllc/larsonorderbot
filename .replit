@@ -17,4 +17,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node app.js"
+args = "node src/frame-order-zapier-integration.js"
