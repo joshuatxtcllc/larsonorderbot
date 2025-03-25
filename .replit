@@ -21,3 +21,5 @@ args = "Dev Server"
 
 [[ports]]
 localPort = 3000
+externalPort = 80
+exposeLocalhost = false
