@@ -1,3 +1,70 @@
+// Tool functions
+async function checkOrderStatus() {
+  try {
+    const orderId = prompt('Enter order ID to check:');
+    if (!orderId) return;
+
+    const response = await fetch(`/api/order-status/${orderId}`);
+    const data = await response.json();
+
+    if (response.ok) {
+      alert(`Order Status:\nID: ${data.id}\nStatus: ${data.status}\nTimestamp: ${new Date(data.timestamp).toLocaleString()}`);
+    } else {
+      alert('Error: ' + (data.error || 'Failed to check order status'));
+    }
+  } catch (error) {
+    console.error('Error checking order status:', error);
+    alert('Failed to check order status');
+  }
+}
+
+async function retryFailedOrders() {
+  try {
+    const response = await fetch('/api/orders?status=failed');
+    const orders = await response.json();
+    
+    if (orders.length === 0) {
+      alert('No failed orders found');
+      return;
+    }
+
+    const orderToRetry = prompt(`Failed orders:\n${orders.map(o => o.id).join('\n')}\n\nEnter order ID to retry:`);
+    if (!orderToRetry) return;
+
+    const retryResponse = await fetch(`/api/retry-order/${orderToRetry}`, { method: 'POST' });
+    const retryData = await retryResponse.json();
+
+    if (retryResponse.ok) {
+      alert('Order retry initiated successfully');
+      loadOrders();
+    } else {
+      alert('Error: ' + (retryData.error || 'Failed to retry order'));
+    }
+  } catch (error) {
+    console.error('Error retrying orders:', error);
+    alert('Failed to retry orders');
+  }
+}
+
+async function viewOrderHistory() {
+  try {
+    const response = await fetch('/api/orders');
+    const orders = await response.json();
+    
+    const historyText = orders.map(order => 
+      `Order ${order.id}\n` +
+      `Status: ${order.status}\n` +
+      `Items: ${order.itemCount}\n` +
+      `Date: ${new Date(order.timestamp).toLocaleString()}\n`
+    ).join('\n');
+
+    alert('Order History:\n\n' + historyText);
+  } catch (error) {
+    console.error('Error viewing order history:', error);
+    alert('Failed to load order history');
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('frameOrderForm');
   const submitBtn = document.getElementById('submitBtn');
