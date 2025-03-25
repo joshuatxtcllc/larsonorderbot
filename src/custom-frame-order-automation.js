@@ -6,11 +6,44 @@ const puppeteer = require('puppeteer');
 const dotenv = require('dotenv');
 dotenv.config();
 
+// Puppeteer launch options for Replit environment
+const puppeteerOptions = {
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--single-process',
+    '--disable-gpu'
+  ],
+  headless: true
+};
+
 // Configuration (would be stored in .env file)
 const WHOLESALER_URL = 'https://shop.larsonjuhl.com/en-US/'; // Larson-Juhl's shop URL
 const USERNAME = process.env.USERNAME; // Your login username
 const PASSWORD = process.env.PASSWORD; // Your login password
 const ACCOUNT_NUMBER = process.env.ACCOUNT_NUMBER; // Your Larson-Juhl account number
+
+// Function to process orders
+async function processOrders(orders) {
+  console.log('Starting order processing...');
+  const browser = await puppeteer.launch(puppeteerOptions);
+  try {
+    const page = await browser.newPage();
+    console.log('Browser launched successfully');
+    
+    // Order processing logic will go here
+    
+  } catch (error) {
+    console.error('Error processing orders:', error);
+  } finally {
+    await browser.close();
+    console.log('Browser closed');
+  }
+}
 
 // Example frame order data structure
 const frameOrders = [
@@ -29,6 +62,12 @@ const frameOrders = [
 ];
 
 // Validate environment variables
+if (!USERNAME || !PASSWORD || !ACCOUNT_NUMBER) {
+  console.error('Missing required environment variables. Please check your .env file.');
+}
+
+// Export the processOrders function
+module.exports = { processOrders };
 function validateEnvironment() {
   const required = ['USERNAME', 'PASSWORD', 'ACCOUNT_NUMBER', 'API_KEY'];
   const missing = required.filter(key => !process.env[key]);
