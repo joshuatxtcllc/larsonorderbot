@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Form submission
-  document.getElementById('orderForm').addEventListener('submit', function(e) {
+  document.getElementById('orderForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     // Show loading state
@@ -87,3 +87,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
     submitBtn.disabled = true;
+
+    try {
+      // Form validation
+      const forms = document.querySelectorAll('.frame-order');
+      let hasError = false;
+      forms.forEach(form => {
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+          if (!input.checkValidity()) {
+            hasError = true;
+            input.classList.add('is-invalid');
+          }
+        });
+      });
+
+      if (hasError) {
+        throw new Error('Please fill in all required fields correctly');
+      }
+
+      // Continue with form submission...
+    } catch (error) {
+      console.error('Form submission error:', error);
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+      alert(error.message || 'An error occurred while processing your order');
+    }

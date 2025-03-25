@@ -28,12 +28,23 @@ const frameOrders = [
   }
 ];
 
+// Validate environment variables
+function validateEnvironment() {
+  const required = ['USERNAME', 'PASSWORD', 'ACCOUNT_NUMBER', 'API_KEY'];
+  const missing = required.filter(key => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+}
+
 // Main function to process orders
 async function processOrders(orders) {
+  validateEnvironment();
+  
   const browser = await puppeteer.launch({ 
-    headless: false, // Set to true in production
-    defaultViewport: null, // Full page viewport
-    args: ['--window-size=1920,1080'] // Larger viewport
+    headless: process.env.DEBUG_MODE !== 'true',
+    defaultViewport: null,
+    args: ['--window-size=1920,1080', '--no-sandbox']
   });
   const page = await browser.newPage();
   
