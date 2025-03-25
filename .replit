@@ -21,7 +21,7 @@ args = "Dev Server"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node app.js"
+args = "node src/frame-order-zapier-integration.js"
 
 [[ports]]
 localPort = 3000
