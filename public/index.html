@@ -8,10 +8,30 @@
     <style>
         .order-form { max-width: 600px; margin: 2rem auto; padding: 1rem; }
         .status-badge { font-size: 0.9em; }
+        .tools-section { margin: 1rem 0; padding: 1rem; background: #f8f9fa; border-radius: 4px; }
+        .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .tool-card { padding: 1rem; border: 1px solid #dee2e6; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="tools-section">
+            <h2>Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-card">
+                    <h3>Order Status</h3>
+                    <button class="btn btn-info" onclick="checkOrderStatus()">Check Status</button>
+                </div>
+                <div class="tool-card">
+                    <h3>Retry Orders</h3>
+                    <button class="btn btn-warning" onclick="retryFailedOrders()">Retry Failed</button>
+                </div>
+                <div class="tool-card">
+                    <h3>Order History</h3>
+                    <button class="btn btn-secondary" onclick="viewOrderHistory()">View History</button>
+                </div>
+            </div>
+        </div>
         <div class="order-form">
             <h2 class="mb-4">New Frame Order</h2>
             <form id="frameOrderForm">
