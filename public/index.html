@@ -65,3 +65,183 @@
     <script src="app.js"></script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frame Order Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Frame Order Dashboard</h1>
+        <div id="status" class="status">Checking server status...</div>
+        
+        <h2>Recent Orders</h2>
+        <table id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Timestamp</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+                <tr>
+                    <td colspan="5">Loading orders...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin + '/api';
+        
+        // Check server status
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('status');
+                if (data.status === 'online') {
+                    statusDiv.className = 'status online';
+                    statusDiv.innerHTML = '✅ Server is online';
+                } else {
+                    statusDiv.className = 'status offline';
+                    statusDiv.innerHTML = '❌ Server is offline';
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.className = 'status offline';
+                statusDiv.innerHTML = '❌ Cannot connect to server';
+            }
+        }
+        
+        // Load orders
+        async function loadOrders() {
+            try {
+                const response = await fetch(`${API_URL}/orders`);
+                const orders = await response.json();
+                
+                const tableBody = document.getElementById('ordersTableBody');
+                
+                if (orders.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5">No orders found</td></tr>';
+                    return;
+                }
+                
+                tableBody.innerHTML = '';
+                
+                orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    
+                    const idCell = document.createElement('td');
+                    idCell.textContent = order.id;
+                    
+                    const timestampCell = document.createElement('td');
+                    timestampCell.textContent = new Date(order.timestamp).toLocaleString();
+                    
+                    const statusCell = document.createElement('td');
+                    statusCell.textContent = order.status;
+                    
+                    const itemsCell = document.createElement('td');
+                    itemsCell.textContent = order.itemCount;
+                    
+                    const actionsCell = document.createElement('td');
+                    if (order.status === 'failed') {
+                        const retryBtn = document.createElement('button');
+                        retryBtn.textContent = 'Retry';
+                        retryBtn.onclick = () => retryOrder(order.id);
+                        actionsCell.appendChild(retryBtn);
+                    }
+                    
+                    row.appendChild(idCell);
+                    row.appendChild(timestampCell);
+                    row.appendChild(statusCell);
+                    row.appendChild(itemsCell);
+                    row.appendChild(actionsCell);
+                    
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                const tableBody = document.getElementById('ordersTableBody');
+                tableBody.innerHTML = '<tr><td colspan="5">Error loading orders</td></tr>';
+            }
+        }
+        
+        // Retry failed order
+        async function retryOrder(orderId) {
+            try {
+                const response = await fetch(`${API_URL}/retry-order/${orderId}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                alert(`Order retry ${result.message ? 'started' : 'failed'}`);
+                
+                // Reload orders
+                loadOrders();
+            } catch (error) {
+                alert('Error retrying order: ' + error.message);
+            }
+        }
+        
+        // Initialize
+        checkStatus();
+        loadOrders();
+        
+        // Refresh data every 30 seconds
+        setInterval(() => {
+            checkStatus();
+            loadOrders();
+        }, 30000);
+    </script>
+</body>
+</html>
