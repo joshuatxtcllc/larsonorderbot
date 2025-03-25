@@ -2,14 +2,11 @@ const express = require('express');
 const path = require('path');
 const app = express();
 
-// Serve static files from both root and public directories
-app.use(express.static(path.join(__dirname)));
-app.use(express.static(path.join(__dirname, 'public')));
+// Body parser middleware
+app.use(express.json());
 
-// Serve index.html for the root route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// Serve static files from the public directory
+app.use(express.static('public'));
 
 // API endpoints
 app.get('/api/orders', (req, res) => {
@@ -20,12 +17,15 @@ app.post('/api/process-orders', (req, res) => {
   res.json({ orderId: Date.now() });  // Replace with actual processing logic
 });
 
-// Start server
+// Serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
-
 
 // public/script.js (This file needs to be created)
 document.addEventListener('DOMContentLoaded', function() {
