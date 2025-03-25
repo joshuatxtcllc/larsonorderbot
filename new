@@ -1,0 +1,31 @@
+{
+  "name": "larson-juhl-frame-automation",
+  "version": "1.0.0",
+  "description": "Automated system for custom framing businesses using Larson-Juhl",
+  "main": "frame-order-zapier-integration.js",
+  "scripts": {
+    "start": "node frame-order-zapier-integration.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "puppeteer": "^22.8.2"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/larson-juhl-frame-automation.git"
+  },
+  "keywords": [
+    "larson-juhl",
+    "framing",
+    "automation",
+    "custom-framing",
+    "zapier",
+    "replit",
+    "netlify"
+  ]
+}
