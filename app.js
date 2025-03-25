@@ -1,14 +1,23 @@
-// server.js
 const express = require('express');
 const path = require('path');
 const app = express();
 
-// Serve static files from the public directory
-app.use(express.static('public'));
+// Serve static files from both root and public directories
+app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve index.html for the root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API endpoints
+app.get('/api/orders', (req, res) => {
+  res.json([]);  // Replace with actual orders logic
+});
+
+app.post('/api/process-orders', (req, res) => {
+  res.json({ orderId: Date.now() });  // Replace with actual processing logic
 });
 
 // Start server
