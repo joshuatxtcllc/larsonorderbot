@@ -16,9 +16,8 @@ author = 27546771
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node src/frame-order-zapier-integration.js"
+task = "workflow.run"
+args = "Dev Server"
 
 [[ports]]
 localPort = 3000
-externalPort = 80
