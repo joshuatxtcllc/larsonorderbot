@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "node src/frame-order-zapier-integration.js"]
 
 [workflows]
-runButton = "Dev Server"
+runButton = "Start API Server"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -22,6 +22,15 @@ args = "Dev Server"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash start.sh"
+
+[[workflows.workflow]]
+name = "Start API Server"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node src/frame-order-zapier-integration.js"
 
 [[ports]]
 localPort = 3000
