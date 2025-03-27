@@ -157,3 +157,99 @@ if (require.main === module) {
 }
 
 module.exports = { processOrders, loginToLarsonJuhl, processOrder };
+const puppeteer = require('puppeteer');
+
+/**
+ * Process frame orders by automating interactions with the Larson-Juhl website
+ * @param {Array} orders - Array of order objects
+ * @returns {Promise} - Resolves when all orders are processed
+ */
+async function processOrders(orders) {
+  console.log(`Processing ${orders.length} order(s)...`);
+  
+  try {
+    // Launch browser with appropriate arguments for Replit environment
+    const browser = await puppeteer.launch({
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu'
+      ],
+      headless: 'new'
+    });
+    
+    const page = await browser.newPage();
+    
+    // Login to Larson-Juhl
+    await page.goto('https://www.larsonjuhl.com/login');
+    await page.type('#email', process.env.USERNAME);
+    await page.type('#password', process.env.PASSWORD);
+    await page.click('button[type="submit"]');
+    
+    // Wait for successful login
+    await page.waitForNavigation();
+    
+    // Process each order
+    for (const order of orders) {
+      console.log(`Processing order item: ${order.itemNumber}`);
+      
+      // Navigate to ordering page
+      await page.goto('https://www.larsonjuhl.com/ordering');
+      
+      // Fill in order details
+      await page.type('#item-number', order.itemNumber);
+      
+      // Set width and height
+      await page.type('#width', order.size.width.toString());
+      await page.type('#height', order.size.height.toString());
+      
+      // Set quantity
+      await page.type('#quantity', order.quantity.toString());
+      
+      // Select preparedness (join or length)
+      await page.select('#preparedness', order.preparedness);
+      
+      // Add to cart
+      await page.click('#add-to-cart-button');
+      
+      // Wait for confirmation
+      await page.waitForSelector('.confirmation-message');
+      
+      console.log(`Item ${order.itemNumber} added to cart successfully`);
+    }
+    
+    // Proceed to checkout
+    await page.goto('https://www.larsonjuhl.com/cart');
+    await page.click('#checkout-button');
+    
+    // Complete order placement
+    await page.waitForSelector('#place-order-button');
+    
+    // Set account number if needed
+    if (process.env.ACCOUNT_NUMBER) {
+      await page.type('#account-number', process.env.ACCOUNT_NUMBER);
+    }
+    
+    // Place the order
+    await page.click('#place-order-button');
+    
+    // Wait for order confirmation
+    await page.waitForSelector('.order-confirmation');
+    
+    // Extract order confirmation number
+    const confirmationNumber = await page.$eval('.order-confirmation-number', el => el.textContent.trim());
+    console.log(`Order placed successfully. Confirmation number: ${confirmationNumber}`);
+    
+    // Close browser
+    await browser.close();
+    
+    return confirmationNumber;
+  } catch (error) {
+    console.error('Error processing orders:', error);
+    throw error;
+  }
+}
+
+module.exports = { processOrders };

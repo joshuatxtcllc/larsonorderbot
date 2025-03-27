@@ -1,6 +1,17 @@
+
 const express = require('express');
 const path = require('path');
 const app = express();
+const { processOrders } = require('./src/custom-frame-order-automation');
+const crypto = require('crypto');
+const fs = require('fs');
+require('dotenv').config();
+
+// Create orders directory if it doesn't exist
+const ordersDir = path.join(__dirname, 'src', 'orders');
+if (!fs.existsSync(ordersDir)) {
+  fs.mkdirSync(ordersDir, { recursive: true });
+}
 
 // Body parser middleware
 app.use(express.json());
@@ -8,13 +19,171 @@ app.use(express.json());
 // Serve static files from the public directory
 app.use(express.static('public'));
 
-// API endpoints
-app.get('/api/orders', (req, res) => {
-  res.json([]);  // Replace with actual orders logic
+// Status endpoint for health checks
+app.get('/api/status', (req, res) => {
+  res.status(200).json({ status: 'online' });
 });
 
-app.post('/api/process-orders', (req, res) => {
-  res.json({ orderId: Date.now() });  // Replace with actual processing logic
+// List all orders (with optional status filter)
+app.get('/api/orders', (req, res) => {
+  try {
+    const { status } = req.query;
+    const files = fs.readdirSync(ordersDir);
+    const orders = files
+      .filter(file => file.endsWith('.json'))
+      .map(file => {
+        const orderData = JSON.parse(fs.readFileSync(path.join(ordersDir, file), 'utf8'));
+        return {
+          id: orderData.id,
+          timestamp: orderData.timestamp,
+          status: orderData.status,
+          itemCount: orderData.orders.length
+        };
+      })
+      .filter(order => !status || order.status === status)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error('Error listing orders:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Order processing endpoint
+app.post('/api/process-orders', async (req, res) => {
+  try {
+    const { apiKey, orders } = req.body;
+    
+    // Validate API key (simple security measure)
+    if (apiKey !== process.env.API_KEY) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    // Validate order data
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
+      return res.status(400).json({ error: 'Invalid order data' });
+    }
+
+    // Add timestamp and order ID
+    const timestamp = new Date().toISOString();
+    const orderId = crypto.randomBytes(8).toString('hex');
+    
+    // Save the order to a file for record-keeping and manual processing if needed
+    const orderData = {
+      id: orderId,
+      timestamp,
+      orders,
+      status: 'pending'
+    };
+    
+    fs.writeFileSync(
+      path.join(ordersDir, `${orderId}.json`),
+      JSON.stringify(orderData, null, 2)
+    );
+    
+    // Process orders asynchronously so we can return quickly
+    processOrders(orders)
+      .then(() => {
+        // Update status to completed
+        orderData.status = 'completed';
+        fs.writeFileSync(
+          path.join(ordersDir, `${orderId}.json`),
+          JSON.stringify(orderData, null, 2)
+        );
+        console.log(`Order ${orderId} processed successfully via API`);
+      })
+      .catch(err => {
+        // Update status to failed
+        orderData.status = 'failed';
+        orderData.error = err.message;
+        fs.writeFileSync(
+          path.join(ordersDir, `${orderId}.json`),
+          JSON.stringify(orderData, null, 2)
+        );
+        console.error(`Error processing order ${orderId} via API:`, err);
+      });
+    
+    // Return success immediately (don't wait for processing to finish)
+    return res.status(200).json({ 
+      message: 'Order processing started',
+      orderId,
+      timestamp
+    });
+  } catch (error) {
+    console.error('API error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Check order status endpoint
+app.get('/api/order-status/:orderId', (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const orderPath = path.join(ordersDir, `${orderId}.json`);
+    
+    if (!fs.existsSync(orderPath)) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const orderData = JSON.parse(fs.readFileSync(orderPath, 'utf8'));
+    return res.status(200).json({
+      id: orderData.id,
+      timestamp: orderData.timestamp,
+      status: orderData.status,
+      error: orderData.error || null
+    });
+  } catch (error) {
+    console.error('Error checking order status:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Retry failed order
+app.post('/api/retry-order/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const orderPath = path.join(ordersDir, `${orderId}.json`);
+    
+    if (!fs.existsSync(orderPath)) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const orderData = JSON.parse(fs.readFileSync(orderPath, 'utf8'));
+    
+    if (orderData.status !== 'failed') {
+      return res.status(400).json({ error: 'Only failed orders can be retried' });
+    }
+    
+    // Update status to pending
+    orderData.status = 'pending';
+    orderData.retryTimestamp = new Date().toISOString();
+    fs.writeFileSync(orderPath, JSON.stringify(orderData, null, 2));
+    
+    // Process the order
+    processOrders(orderData.orders)
+      .then(() => {
+        // Update status to completed
+        orderData.status = 'completed';
+        fs.writeFileSync(orderPath, JSON.stringify(orderData, null, 2));
+        console.log(`Order ${orderId} retried successfully`);
+      })
+      .catch(err => {
+        // Update status to failed
+        orderData.status = 'failed';
+        orderData.error = err.message;
+        fs.writeFileSync(orderPath, JSON.stringify(orderData, null, 2));
+        console.error(`Error retrying order ${orderId}:`, err);
+      });
+    
+    return res.status(200).json({
+      message: 'Order retry started',
+      orderId
+    });
+  } catch (error) {
+    console.error('Error retrying order:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Serve index.html for all other routes
@@ -25,122 +194,5 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-// public/script.js (This file needs to be created)
-document.addEventListener('DOMContentLoaded', function() {
-  // Counter for generating unique IDs for new order forms
-  let orderCount = 1;
-  
-  // Initialize Bootstrap tooltips
-  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-  
-  // Add another frame order button click handler
-  document.getElementById('addOrderBtn').addEventListener('click', function() {
-    const ordersContainer = document.getElementById('ordersContainer');
-    const newOrder = document.createElement('div');
-    newOrder.className = 'frame-order';
-    newOrder.innerHTML = `
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label for="itemNumber${orderCount}" class="form-label">Larson-Juhl Item Number</label>
-          <i class="fas fa-question-circle tooltip-help" data-bs-toggle="tooltip" title="Enter the Larson-Juhl moulding number (e.g. LJ123456)"></i>
-          <input type="text" class="form-control item-number" id="itemNumber${orderCount}" placeholder="e.g. 562810" required>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label for="quantity${orderCount}" class="form-label">Quantity</label>
-          <input type="number" class="form-control quantity" id="quantity${orderCount}" min="1" value="1" required>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-3 mb-3">
-          <label for="width${orderCount}" class="form-label">Width (inches)</label>
-          <input type="number" class="form-control width" id="width${orderCount}" step="0.125" placeholder="e.g. 16.25" required>
-        </div>
-        <div class="col-md-3 mb-3">
-          <label for="height${orderCount}" class="form-label">Height (inches)</label>
-          <input type="number" class="form-control height" id="height${orderCount}" step="0.125" placeholder="e.g. 20.5" required>
-        </div>
-        <div class="col-md-6 mb-3">
-          <label for="preparedness${orderCount}" class="form-label">Unit of Measurement</label>
-          <i class="fas fa-question-circle tooltip-help" data-bs-toggle="tooltip" title="Select 'Join' for joined frames or 'Length' for cut lengths"></i>
-          <select class="form-select preparedness" id="preparedness${orderCount}" required>
-            <option value="join">Join (Assembled Frame)</option>
-            <option value="length">Length (Cut Only)</option>
-          </select>
-        </div>
-      </div>
-      <button type="button" class="btn btn-outline-danger btn-sm remove-order">
-        <i class="fas fa-trash-alt me-1"></i> Remove
-      </button>
-    `;
-    ordersContainer.appendChild(newOrder);
-    
-    // Initialize tooltips for the new elements
-    const newTooltips = newOrder.querySelectorAll('[data-bs-toggle="tooltip"]');
-    newTooltips.forEach(el => {
-      new bootstrap.Tooltip(el);
-    });
-    
-    orderCount++;
-    
-    // Enable all remove buttons when there's more than one order
-    document.querySelectorAll('.remove-order').forEach(btn => {
-      btn.disabled = false;
-    });
-  });
-  
-  // Remove order (event delegation)
-  document.getElementById('ordersContainer').addEventListener('click', function(e) {
-    if (e.target.classList.contains('remove-order') || e.target.closest('.remove-order')) {
-      const removeBtn = e.target.classList.contains('remove-order') ? e.target : e.target.closest('.remove-order');
-      if (!removeBtn.disabled) {
-        removeBtn.closest('.frame-order').remove();
-        
-        // If only one order left, disable its remove button
-        const removeButtons = document.querySelectorAll('.remove-order');
-        if (removeButtons.length === 1) {
-          removeButtons[0].disabled = true;
-        }
-      }
-    }
-  });
-  
-  // Form submission
-  document.getElementById('orderForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    // Show loading state
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
-    submitBtn.disabled = true;
-    
-    try {
-      // Form validation
-      const forms = document.querySelectorAll('.frame-order');
-      let hasError = false;
-      forms.forEach(form => {
-        const inputs = form.querySelectorAll('input, select');
-        inputs.forEach(input => {
-          if (!input.checkValidity()) {
-            hasError = true;
-            input.classList.add('is-invalid');
-          }
-        });
-      });
-      
-      if (hasError) {
-        throw new Error('Please fill in all required fields correctly');
-      }
-      
-      // Continue with form submission...
-    } catch (error) {
-      console.error('Form submission error:', error);
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
-      alert(error.message || 'An error occurred while processing your order');
-    }
-  });
+  console.log(`Dashboard available at http://0.0.0.0:${PORT}`);
 });

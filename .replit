@@ -39,7 +39,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node src/frame-order-zapier-integration.js"
+args = "node app.js"
 
 [[ports]]
 localPort = 3000

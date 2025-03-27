@@ -1,4 +1,95 @@
-// Tool functions
+
+// Dashboard functionality for Frame Order Management
+
+// Load orders when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadOrders();
+  
+  // Set up event listeners
+  document.getElementById('checkStatusBtn').addEventListener('click', checkOrderStatus);
+  document.getElementById('retryOrderBtn').addEventListener('click', retryFailedOrders);
+  
+  // Check system status
+  checkSystemStatus();
+});
+
+// Load all orders
+async function loadOrders() {
+  try {
+    const response = await fetch('/api/orders');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const orders = await response.json();
+    displayOrders(orders);
+  } catch (error) {
+    console.error('Error loading orders:', error);
+    document.getElementById('ordersTable').innerHTML = `
+      <tr>
+        <td colspan="4" class="text-center text-danger">
+          Failed to load orders. Please refresh the page or check server status.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+// Display orders in the table
+function displayOrders(orders) {
+  const tableBody = document.getElementById('ordersTable');
+  
+  if (orders.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="4" class="text-center">No orders found</td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tableBody.innerHTML = orders.map(order => `
+    <tr class="${getStatusClass(order.status)}">
+      <td>${order.id}</td>
+      <td>${new Date(order.timestamp).toLocaleString()}</td>
+      <td>${order.status}</td>
+      <td>${order.itemCount} item(s)</td>
+    </tr>
+  `).join('');
+}
+
+// Get appropriate class for status
+function getStatusClass(status) {
+  switch(status) {
+    case 'completed': return 'table-success';
+    case 'failed': return 'table-danger';
+    case 'pending': return 'table-warning';
+    default: return '';
+  }
+}
+
+// Check system status
+async function checkSystemStatus() {
+  try {
+    const response = await fetch('/api/status');
+    
+    if (response.ok) {
+      const data = await response.json();
+      document.getElementById('systemStatus').textContent = data.status;
+      document.getElementById('systemStatus').className = 'badge bg-success';
+    } else {
+      document.getElementById('systemStatus').textContent = 'offline';
+      document.getElementById('systemStatus').className = 'badge bg-danger';
+    }
+  } catch (error) {
+    console.error('Error checking status:', error);
+    document.getElementById('systemStatus').textContent = 'error';
+    document.getElementById('systemStatus').className = 'badge bg-danger';
+  }
+}
+
+// Check order status
 async function checkOrderStatus() {
   try {
     const orderId = prompt('Enter order ID to check:');
@@ -18,9 +109,15 @@ async function checkOrderStatus() {
   }
 }
 
+// Retry failed orders
 async function retryFailedOrders() {
   try {
     const response = await fetch('/api/orders?status=failed');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const orders = await response.json();
     
     if (orders.length === 0) {
@@ -45,110 +142,3 @@ async function retryFailedOrders() {
     alert('Failed to retry orders');
   }
 }
-
-async function viewOrderHistory() {
-  try {
-    const response = await fetch('/api/orders');
-    const orders = await response.json();
-    
-    const historyText = orders.map(order => 
-      `Order ${order.id}\n` +
-      `Status: ${order.status}\n` +
-      `Items: ${order.itemCount}\n` +
-      `Date: ${new Date(order.timestamp).toLocaleString()}\n`
-    ).join('\n');
-
-    alert('Order History:\n\n' + historyText);
-  } catch (error) {
-    console.error('Error viewing order history:', error);
-    alert('Failed to load order history');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('frameOrderForm');
-  const submitBtn = document.getElementById('submitBtn');
-  const ordersList = document.getElementById('ordersList');
-
-  // Load existing orders
-  loadOrders();
-
-  // Refresh orders every 30 seconds
-  setInterval(loadOrders, 30000);
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = 'Processing...';
-    submitBtn.disabled = true;
-
-    try {
-      const order = {
-        itemNumber: document.getElementById('itemNumber').value,
-        size: {
-          width: parseFloat(document.getElementById('width').value),
-          height: parseFloat(document.getElementById('height').value)
-        },
-        preparedness: 'join',
-        quantity: parseInt(document.getElementById('quantity').value)
-      };
-
-      const response = await fetch('/api/process-orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          apiKey: localStorage.getItem('apiKey') || prompt('Please enter your API key:'),
-          orders: [order]
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit order');
-      }
-
-      alert('Order submitted successfully! Order ID: ' + data.orderId);
-      form.reset();
-      loadOrders();
-    } catch (error) {
-      console.error('Form submission error:', error);
-      alert(error.message || 'An error occurred while processing your order');
-    } finally {
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
-    }
-  });
-
-  async function loadOrders() {
-    try {
-      const response = await fetch('/api/orders');
-      const orders = await response.json();
-
-      ordersList.innerHTML = orders.map(order => `
-        <div class="list-group-item">
-          <div class="d-flex w-100 justify-content-between">
-            <h5 class="mb-1">Order ${order.id}</h5>
-            <small class="text-muted">${new Date(order.timestamp).toLocaleString()}</small>
-          </div>
-          <p class="mb-1">Items: ${order.itemCount}</p>
-          <span class="badge bg-${getStatusColor(order.status)}">${order.status}</span>
-        </div>
-      `).join('');
-    } catch (error) {
-      console.error('Error loading orders:', error);
-    }
-  }
-
-  function getStatusColor(status) {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'pending': return 'warning';
-      case 'failed': return 'danger';
-      default: return 'secondary';
-    }
-  }
-});
