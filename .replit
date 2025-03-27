@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "node src/frame-order-zapier-integration.js"]
 
 [workflows]
-runButton = "Start API Server"
+runButton = "Dev Server"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -21,7 +21,7 @@ args = "Dev Server"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash start.sh"
+args = "node src/frame-order-zapier-integration.js"
 
 [[workflows.workflow]]
 name = "Start API Server"
