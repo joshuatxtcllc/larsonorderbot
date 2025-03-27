@@ -50,6 +50,15 @@ mode = "sequential"
 task = "shell.exec"
 args = "node healthcheck.js"
 
+[[workflows.workflow]]
+name = "Fixed Health Check"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node healthcheck.js"
+
 [[ports]]
 localPort = 3000
 externalPort = 80
