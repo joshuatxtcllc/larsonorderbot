@@ -52,7 +52,8 @@ req.on('error', (error) => {
 req.end();
 
 console.log('\nHealth check complete. Run this script after starting the server to identify issues.');
-// Check API endpoint
+
+// Check API endpoint with Promise-based approach
 const apiCheck = new Promise((resolve, reject) => {
   const options = {
     hostname: '0.0.0.0',
@@ -61,7 +62,7 @@ const apiCheck = new Promise((resolve, reject) => {
     method: 'GET'
   };
 
-  const req = http.request(options, (res) => {
+  const apiReq = http.request(options, (res) => {
     let data = '';
 
     res.on('data', (chunk) => {
@@ -82,11 +83,11 @@ const apiCheck = new Promise((resolve, reject) => {
     });
   });
 
-  req.on('error', (error) => {
+  apiReq.on('error', (error) => {
     reject(new Error(`API request failed: ${error.message}`));
   });
 
-  req.end();
+  apiReq.end();
 });
 
 // Check orders directory

@@ -1,13 +1,18 @@
 
-// Order Scheduler for approved frame orders
 const fs = require('fs');
 const path = require('path');
 const { processOrders } = require('./custom-frame-order-automation');
-const { ordersDir } = require('./config');
 
-// Function to get all approved orders waiting for scheduled processing
+const ordersDir = path.join(__dirname, 'orders');
+
 function getApprovedOrders() {
   try {
+    if (!fs.existsSync(ordersDir)) {
+      console.log('Orders directory does not exist, creating it');
+      fs.mkdirSync(ordersDir, { recursive: true });
+      return [];
+    }
+    
     const files = fs.readdirSync(ordersDir);
     const approvedOrders = [];
     
@@ -29,75 +34,73 @@ function getApprovedOrders() {
   }
 }
 
-// Function to process scheduled orders
 async function processScheduledOrders() {
-  try {
-    console.log('Running scheduled order processing...');
-    const approvedOrders = getApprovedOrders();
-    
-    if (approvedOrders.length === 0) {
-      console.log('No approved orders to process');
-      return {
-        success: true,
-        message: 'No approved orders to process',
-        processedCount: 0
-      };
-    }
-    
-    console.log(`Found ${approvedOrders.length} orders to process`);
-    
-    for (const order of approvedOrders) {
-      try {
-        // Extract the items for processing
-        const items = order.items;
-        
-        // Update the order status
-        order.status = 'processing';
-        order.processingStartedAt = new Date().toISOString();
-        fs.writeFileSync(
-          path.join(ordersDir, `${order.id}.json`),
-          JSON.stringify(order, null, 2)
-        );
-        
-        // Process the order
-        await processOrders(items);
-        
-        // Update status to completed
-        order.status = 'completed';
-        order.completedAt = new Date().toISOString();
-        fs.writeFileSync(
-          path.join(ordersDir, `${order.id}.json`),
-          JSON.stringify(order, null, 2)
-        );
-        
-        console.log(`Scheduled order ${order.id} processed successfully`);
-      } catch (error) {
-        // Update status to failed
-        order.status = 'failed';
-        order.error = error.message;
-        order.failedAt = new Date().toISOString();
-        fs.writeFileSync(
-          path.join(ordersDir, `${order.id}.json`),
-          JSON.stringify(order, null, 2)
-        );
-        
-        console.error(`Error processing scheduled order ${order.id}:`, error);
-      }
-    }
-    
-    return {
-      success: true,
-      message: 'Scheduled order processing completed',
-      processedCount: approvedOrders.length
-    };
-  } catch (error) {
-    console.error('Error in scheduled order processing:', error);
-    return {
-      success: false,
-      error: error.message,
-      processedCount: 0
-    };
+  console.log('Running scheduled order processing');
+  const approvedOrders = getApprovedOrders();
+  
+  if (approvedOrders.length === 0) {
+    console.log('No approved orders to process');
+    return { processed: 0, success: true };
   }
+  
+  console.log(`Found ${approvedOrders.length} orders to process`);
+  
+  const results = {
+    processed: 0,
+    successful: 0,
+    failed: 0,
+    errors: []
+  };
+  
+  for (const order of approvedOrders) {
+    try {
+      console.log(`Processing scheduled order: ${order.id}`);
+      
+      // Mark as processing
+      order.status = 'processing';
+      order.processingTimestamp = new Date().toISOString();
+      fs.writeFileSync(
+        path.join(ordersDir, `${order.id}.json`),
+        JSON.stringify(order, null, 2)
+      );
+      
+      // Process the order
+      await processOrders(order.orders);
+      
+      // Mark as completed
+      order.status = 'completed';
+      order.completedTimestamp = new Date().toISOString();
+      fs.writeFileSync(
+        path.join(ordersDir, `${order.id}.json`),
+        JSON.stringify(order, null, 2)
+      );
+      
+      results.processed++;
+      results.successful++;
+      console.log(`Order ${order.id} processed successfully`);
+    } catch (error) {
+      console.error(`Error processing order ${order.id}:`, error);
+      
+      // Mark as failed
+      order.status = 'failed';
+      order.error = error.message;
+      order.failedTimestamp = new Date().toISOString();
+      fs.writeFileSync(
+        path.join(ordersDir, `${order.id}.json`),
+        JSON.stringify(order, null, 2)
+      );
+      
+      results.processed++;
+      results.failed++;
+      results.errors.push({
+        orderId: order.id,
+        error: error.message
+      });
+    }
+  }
+  
+  console.log('Scheduled processing complete:', results);
+  return results;
 }
 
 module.exports = {
