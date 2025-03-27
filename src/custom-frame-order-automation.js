@@ -23,7 +23,7 @@ async function processOrders(orders) {
       '--disable-accelerated-2d-canvas',
       '--disable-gpu'
     ],
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null
+    ignoreDefaultArgs: ['--disable-extensions']
   });
 
   try {
