@@ -5,7 +5,7 @@ run = "npm run start"
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "node src/run-scheduled-orders.js"]
+run = ["sh", "-c", "node app.js"]
 
 [workflows]
 runButton = "API Server"
