@@ -62,7 +62,7 @@ const apiCheck = new Promise((resolve, reject) => {
     method: 'GET'
   };
 
-  const apiReq = http.request(options, (res) => {
+  const httpReq = http.request(options, (res) => {
     let data = '';
 
     res.on('data', (chunk) => {
@@ -83,11 +83,11 @@ const apiCheck = new Promise((resolve, reject) => {
     });
   });
 
-  apiReq.on('error', (error) => {
+  httpReq.on('error', (error) => {
     reject(new Error(`API request failed: ${error.message}`));
   });
 
-  apiReq.end();
+  httpReq.end();
 });
 
 // Check orders directory
