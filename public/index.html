@@ -69,15 +69,17 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Check API status
       checkApiStatus();
+      checkOrdersDirectory(); // Added check for orders directory
 
       // Check status every 30 seconds
       setInterval(checkApiStatus, 30000);
+      setInterval(checkOrdersDirectory, 30000); // Added interval for orders directory check
 
       function checkApiStatus() {
         fetch('/api/status')
           .then(response => {
             if (!response.ok) {
-              throw new Error('Status check failed with HTTP ' + response.status);
+              throw new Error('API status check failed with HTTP ' + response.status);
             }
             return response.json();
           })
@@ -86,14 +88,34 @@
             document.getElementById('api-status').className = 'text-success';
             document.getElementById('status-indicator').className = 'alert alert-success';
             document.getElementById('status-indicator').textContent = 'System is online and operational';
-            console.log('Checking API status...');
+            console.log('API status: Online');
           })
           .catch(error => {
             document.getElementById('api-status').textContent = 'Offline';
             document.getElementById('api-status').className = 'text-danger';
             document.getElementById('status-indicator').className = 'alert alert-danger';
             document.getElementById('status-indicator').textContent = 'System is currently offline';
-            console.log('Error checking status:', error);
+            console.error('Error checking API status:', error);
+          });
+      }
+
+      function checkOrdersDirectory() {
+        fetch('/api/orders')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Orders directory check failed with HTTP ' + response.status);
+            }
+            return response.json(); // Assuming it returns something on success
+          })
+          .then(data => {
+            document.getElementById('orders-dir-status').textContent = 'Available';
+            document.getElementById('orders-dir-status').className = 'text-success';
+            console.log('Orders directory: Available');
+          })
+          .catch(error => {
+            document.getElementById('orders-dir-status').textContent = 'Unavailable';
+            document.getElementById('orders-dir-status').className = 'text-danger';
+            console.error('Error checking orders directory:', error);
           });
       }
     });
