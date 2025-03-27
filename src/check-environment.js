@@ -6,7 +6,7 @@ const path = require('path');
 const ordersDir = path.join(__dirname, 'orders');
 if (!fs.existsSync(ordersDir)) {
   console.log('Creating orders directory...');
-  fs.mkdirSync(ordersDir);
+  fs.mkdirSync(ordersDir, { recursive: true });
 }
 
 // Check for required environment variables

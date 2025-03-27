@@ -19,7 +19,7 @@ app.use(express.static('public'));
 // Create orders directory if it doesn't exist
 const ordersDir = path.join(__dirname, 'orders');
 if (!fs.existsSync(ordersDir)) {
-  fs.mkdirSync(ordersDir);
+  fs.mkdirSync(ordersDir, { recursive: true });
 }
 
 // Webhook endpoint for Zapier to trigger order processing

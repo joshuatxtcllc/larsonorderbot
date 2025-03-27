@@ -9,21 +9,29 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check server status
   async function checkStatus() {
     try {
+      console.log('Checking API status...');
       const response = await fetch(`${API_URL}/status`);
+      if (!response.ok) {
+        throw new Error(`Status check failed with HTTP ${response.status}`);
+      }
       const data = await response.json();
       document.getElementById('statusIndicator').innerText = data.status;
       document.getElementById('statusIndicator').className = 'badge bg-success';
     } catch (error) {
       document.getElementById('statusIndicator').innerText = 'offline';
       document.getElementById('statusIndicator').className = 'badge bg-danger';
-      console.error('Error checking status:', error);
+      console.error('Error checking status:', error.message || error);
     }
   }
   
   // Load orders
   async function loadOrders() {
     try {
+      console.log('Loading orders...');
       const response = await fetch(`${API_URL}/orders`);
+      if (!response.ok) {
+        throw new Error(`Orders fetch failed with HTTP ${response.status}`);
+      }
       const orders = await response.json();
       
       const table = document.getElementById('ordersTable');
