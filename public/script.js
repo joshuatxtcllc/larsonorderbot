@@ -1,11 +1,10 @@
-
 document.addEventListener('DOMContentLoaded', function() {
   // API URL
   const API_URL = '/api';
-  
+
   // Counter for generating unique IDs for new order forms
   let orderCount = 1;
-  
+
   // Check server status
   async function checkStatus() {
     try {
@@ -15,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error(`Status check failed with HTTP ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Fix: check if element exists before setting properties
       const statusElement = document.getElementById('systemStatus') || document.getElementById('statusIndicator');
       if (statusElement) {
@@ -31,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Error checking status:', error.message || error);
     }
   }
-  
+
   // Load orders
   async function loadOrders() {
     try {
@@ -41,21 +40,21 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error(`Orders fetch failed with HTTP ${response.status}`);
       }
       const orders = await response.json();
-      
+
       // Check for different possible container elements
       const ordersTable = document.getElementById('ordersTable');
       const ordersList = document.getElementById('ordersList');
       const ordersContainer = document.getElementById('orders-container');
-      
+
       // Handle table display if that element exists
       if (ordersTable) {
         const tbody = ordersTable.querySelector('tbody');
-        
+
         if (!orders || orders.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="text-center">No orders found</td></tr>';
           return;
         }
-        
+
         tbody.innerHTML = orders.map(order => `
           <tr class="${order.status === 'failed' ? 'table-danger' : order.status === 'completed' ? 'table-success' : 'table-warning'}">
             <td>${order.id}</td>
@@ -73,14 +72,14 @@ document.addEventListener('DOMContentLoaded', function() {
           </tr>
         `).join('');
       }
-      
+
       // Handle orders list display if that element exists
       else if (ordersList) {
         if (!orders || orders.length === 0) {
           ordersList.innerHTML = '<div class="alert alert-info">No orders found</div>';
           return;
         }
-        
+
         ordersList.innerHTML = orders.map(order => `
           <div class="card order-card">
             <div class="card-header ${order.status === 'failed' ? 'bg-danger' : order.status === 'completed' ? 'bg-success' : 'bg-warning'} text-white">
@@ -102,11 +101,11 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     } catch (error) {
       console.error('Error loading orders:', error);
-      
+
       // Check for different possible container elements
       const ordersTable = document.getElementById('ordersTable');
       const ordersList = document.getElementById('ordersList');
-      
+
       if (ordersTable) {
         const tbody = ordersTable.querySelector('tbody');
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading orders</td></tr>';
@@ -115,36 +114,36 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   }
-  
+
   // Retry failed order
   window.retryOrder = async function(orderId) {
     try {
       const response = await fetch(`${API_URL}/retry-order/${orderId}`, {
         method: 'POST'
       });
-      
+
       const result = await response.json();
       alert(`Order retry ${result.message ? 'started' : 'failed'}`);
-      
+
       // Reload orders
       loadOrders();
     } catch (error) {
       alert('Error retrying order: ' + error.message);
     }
   };
-  
+
   // Form submission
   const orderForm = document.getElementById('orderForm');
   if (orderForm) {
     orderForm.addEventListener('submit', async function(e) {
       e.preventDefault();
-      
+
       // Show loading state
       const submitBtn = this.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
       submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
       submitBtn.disabled = true;
-      
+
       try {
         // Collect order data from form
         const orders = [];
@@ -154,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const height = parseFloat(form.querySelector('.height').value);
           const preparedness = form.querySelector('.preparedness').value;
           const quantity = parseInt(form.querySelector('.quantity').value, 10);
-          
+
           orders.push({
             itemNumber,
             size: { width, height },
@@ -162,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
             quantity
           });
         });
-        
+
         // Send to API
         const response = await fetch(`${API_URL}/process-orders`, {
           method: 'POST',
@@ -174,11 +173,49 @@ document.addEventListener('DOMContentLoaded', function() {
             orders
           })
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok) {
-          alert(`Order submitted successfully! Order ID: ${result.orderId}`);
+          // Create a nicer confirmation modal instead of alert
+          const modalHtml = `
+            <div class="modal fade" id="orderConfirmModal" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Order Submitted Successfully!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p><strong>Order ID:</strong> ${result.orderId}</p>
+                    <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+                    <p>Your order has been received and is being processed.</p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="#ordersList" class="btn btn-primary">View My Orders</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Add modal to page and show it
+          const modalContainer = document.createElement('div');
+          modalContainer.innerHTML = modalHtml;
+          document.body.appendChild(modalContainer);
+
+          const orderModal = new bootstrap.Modal(document.getElementById('orderConfirmModal'));
+          orderModal.show();
+
+          // Clear the form for a new order
+          document.querySelectorAll('.frame-order:not(:first-child)').forEach(el => el.remove());
+          document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+            if (input.id !== 'quantity0') {
+              input.value = '';
+            }
+          });
+
           // Reload orders
           loadOrders();
         } else {
@@ -186,14 +223,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       } catch (error) {
         console.error('Form submission error:', error);
-        alert(error.message || 'An error occurred while processing your order');
+
+        // Create error modal
+        const errorModalHtml = `
+          <div class="modal fade" id="orderErrorModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title">Order Submission Failed</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <p><strong>Error:</strong> ${error.message || 'An error occurred while processing your order'}</p>
+                  <p>Please try again or contact support if the issue persists.</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const errorModalContainer = document.createElement('div');
+        errorModalContainer.innerHTML = errorModalHtml;
+        document.body.appendChild(errorModalContainer);
+
+        const errorModal = new bootstrap.Modal(document.getElementById('orderErrorModal'));
+        errorModal.show();
       } finally {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
       }
     });
   }
-  
+
   // Add another frame order
   const addOrderBtn = document.getElementById('addOrderBtn');
   if (addOrderBtn) {
@@ -236,22 +300,22 @@ document.addEventListener('DOMContentLoaded', function() {
         </button>
       `;
       ordersContainer.appendChild(newOrder);
-      
+
       // Initialize tooltips for the new elements
       const newTooltips = newOrder.querySelectorAll('[data-bs-toggle="tooltip"]');
       newTooltips.forEach(el => {
         new bootstrap.Tooltip(el);
       });
-      
+
       orderCount++;
-      
+
       // Enable all remove buttons when there's more than one order
       document.querySelectorAll('.remove-order').forEach(btn => {
         btn.disabled = false;
       });
     });
   }
-  
+
   // Remove order (event delegation)
   const ordersContainer = document.getElementById('ordersContainer');
   if (ordersContainer) {
@@ -260,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const removeBtn = e.target.classList.contains('remove-order') ? e.target : e.target.closest('.remove-order');
         if (!removeBtn.disabled) {
           removeBtn.closest('.frame-order').remove();
-          
+
           // If only one order left, disable its remove button
           const removeButtons = document.querySelectorAll('.remove-order');
           if (removeButtons.length === 1) {
@@ -270,11 +334,11 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-  
+
   // Initialize
   checkStatus();
   loadOrders();
-  
+
   // Helper functions for styling based on status
   function getStatusClass(status) {
     switch(status) {
@@ -285,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
       default: return 'bg-secondary text-white';
     }
   }
-  
+
   // Get badge CSS class
   function getStatusBadgeClass(status) {
     switch(status) {
@@ -296,15 +360,15 @@ document.addEventListener('DOMContentLoaded', function() {
       default: return 'bg-secondary';
     }
   }
-  
+
   // Create order card element - useful helper function
   function createOrderCard(order) {
     const card = document.createElement('div');
     card.className = 'card mb-3';
-    
+
     // Handle case where orders field might not exist
     const orderItems = order.orders || [];
-    
+
     card.innerHTML = `
       <div class="card-header ${getStatusClass(order.status)}">
         <div class="d-flex justify-content-between align-items-center">

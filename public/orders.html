@@ -1,0 +1,505 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders | Frame Order System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    .order-card {
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+      transition: all 0.3s ease;
+    }
+    .order-card:hover {
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+    .status-badge {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.65rem;
+    }
+    .order-details {
+      padding: 1rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.125);
+    }
+    .order-item {
+      padding: 0.75rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.075);
+    }
+    .order-item:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">Frame Order System</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/orders.html">My Orders</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <div class="row mb-4">
+      <div class="col-md-8">
+        <h1>My Orders</h1>
+        <p class="lead">View and manage your frame orders</p>
+      </div>
+      <div class="col-md-4 text-end">
+        <div class="d-flex justify-content-end align-items-center">
+          <span class="me-2">System Status:</span>
+          <span id="systemStatus" class="badge bg-secondary">checking...</span>
+          <button id="refreshBtn" class="btn btn-sm btn-outline-primary ms-3">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-12">
+        <!-- Filter options -->
+        <div class="card mb-4">
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3 mb-2 mb-md-0">
+                <select id="statusFilter" class="form-select">
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-2 mb-md-0">
+                <select id="dateFilter" class="form-select">
+                  <option value="all">All Dates</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-2 mb-md-0">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by ID or item #">
+              </div>
+              <div class="col-md-2">
+                <button id="applyFilters" class="btn btn-primary w-100">
+                  <i class="fas fa-filter"></i> Filter
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orders list -->
+        <div id="ordersDetailList" class="mb-4">
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading orders...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Details Modal -->
+  <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Order Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="orderDetailsContent">
+          <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading order details...</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // API URL
+      const API_URL = '/api';
+      
+      // Initialize
+      checkStatus();
+      loadOrders();
+      
+      // Event listeners
+      document.getElementById('refreshBtn').addEventListener('click', loadOrders);
+      document.getElementById('applyFilters').addEventListener('click', applyFilters);
+      
+      // Check server status
+      async function checkStatus() {
+        try {
+          console.log('Checking API status...');
+          const response = await fetch(`${API_URL}/status`, {
+            cache: 'no-store'
+          });
+          if (!response.ok) {
+            throw new Error(`Status check failed with HTTP ${response.status}`);
+          }
+          const data = await response.json();
+          
+          const statusElement = document.getElementById('systemStatus');
+          if (statusElement) {
+            statusElement.innerText = data.status || 'online';
+            statusElement.className = 'badge bg-success';
+          }
+        } catch (error) {
+          const statusElement = document.getElementById('systemStatus');
+          if (statusElement) {
+            statusElement.innerText = 'offline';
+            statusElement.className = 'badge bg-danger';
+          }
+          console.error('Error checking status:', error.message || error);
+        }
+      }
+      
+      // Load orders
+      async function loadOrders() {
+        const ordersContainer = document.getElementById('ordersDetailList');
+        
+        try {
+          console.log('Loading orders...');
+          const response = await fetch(`${API_URL}/orders`, {
+            cache: 'no-store' // Prevent caching
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Orders fetch failed with HTTP ${response.status}`);
+          }
+          
+          const orders = await response.json();
+          
+          if (!orders || orders.length === 0) {
+            ordersContainer.innerHTML = '<div class="alert alert-info">No orders found. Create your first order on the dashboard page.</div>';
+            return;
+          }
+          
+          // Sort orders by date (newest first)
+          orders.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          
+          // Convert to HTML
+          ordersContainer.innerHTML = orders.map(order => createOrderCard(order)).join('');
+          
+          // Add event listeners to view details buttons
+          document.querySelectorAll('.view-details-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+              const orderId = this.getAttribute('data-order-id');
+              loadOrderDetails(orderId);
+            });
+          });
+          
+          // Add event listeners to retry buttons
+          document.querySelectorAll('.retry-order-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+              const orderId = this.getAttribute('data-order-id');
+              retryOrder(orderId);
+            });
+          });
+        } catch (error) {
+          console.error('Error loading orders:', error);
+          ordersContainer.innerHTML = '<div class="alert alert-danger">Error loading orders. Please try again later.</div>';
+        }
+      }
+      
+      // Create order card HTML
+      function createOrderCard(order) {
+        const statusClass = getStatusClass(order.status);
+        const statusBadge = getStatusBadgeClass(order.status);
+        
+        return `
+          <div class="card order-card">
+            <div class="card-header ${statusClass}">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Order #${order.id}</h5>
+                <span class="badge ${statusBadge} status-badge">${order.status}</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4">
+                  <p class="mb-1"><strong>Date:</strong></p>
+                  <p>${new Date(order.timestamp).toLocaleString()}</p>
+                </div>
+                <div class="col-md-4">
+                  <p class="mb-1"><strong>Items:</strong></p>
+                  <p>${order.itemCount || 0} frame${order.itemCount !== 1 ? 's' : ''}</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                  <button class="btn btn-primary view-details-btn" data-order-id="${order.id}">
+                    <i class="fas fa-eye"></i> View Details
+                  </button>
+                  ${order.status === 'failed' ? 
+                    `<button class="btn btn-warning retry-order-btn mt-2 mt-md-0 ms-md-2" data-order-id="${order.id}">
+                      <i class="fas fa-redo"></i> Retry
+                    </button>` : 
+                    ''}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Load order details
+      async function loadOrderDetails(orderId) {
+        const modalContent = document.getElementById('orderDetailsContent');
+        modalContent.innerHTML = `
+          <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading order details...</p>
+          </div>
+        `;
+        
+        // Show the modal
+        const detailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+        detailsModal.show();
+        
+        try {
+          const response = await fetch(`${API_URL}/order-status/${orderId}`);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load order details: HTTP ${response.status}`);
+          }
+          
+          const orderDetails = await response.json();
+          
+          // Format date
+          const orderDate = new Date(orderDetails.timestamp).toLocaleString();
+          
+          // Prepare HTML content
+          let detailsHtml = `
+            <div class="mb-4">
+              <h5>Order Information</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Order ID:</strong> ${orderDetails.id}</p>
+                  <p><strong>Date:</strong> ${orderDate}</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Status:</strong> 
+                    <span class="badge ${getStatusBadgeClass(orderDetails.status)}">${orderDetails.status}</span>
+                  </p>
+                  ${orderDetails.error ? `<p><strong>Error:</strong> <span class="text-danger">${orderDetails.error}</span></p>` : ''}
+                </div>
+              </div>
+            </div>
+            
+            <h5>Order Items</h5>
+          `;
+          
+          if (orderDetails.orders && orderDetails.orders.length > 0) {
+            detailsHtml += `<div class="list-group mb-4">`;
+            
+            orderDetails.orders.forEach((item, index) => {
+              detailsHtml += `
+                <div class="list-group-item order-item">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <p class="mb-1"><strong>Item #${index + 1}:</strong> ${item.itemNumber}</p>
+                      <p class="mb-1"><strong>Dimensions:</strong> ${item.size.width}" × ${item.size.height}"</p>
+                    </div>
+                    <div class="col-md-6">
+                      <p class="mb-1"><strong>Quantity:</strong> ${item.quantity}</p>
+                      <p class="mb-1"><strong>Preparedness:</strong> ${item.preparedness === 'join' ? 'Joined Frame' : 'Cut Only'}</p>
+                    </div>
+                  </div>
+                </div>
+              `;
+            });
+            
+            detailsHtml += `</div>`;
+          } else {
+            detailsHtml += `<p class="text-muted">No item details available</p>`;
+          }
+          
+          // Add additional information if available
+          if (orderDetails.retryTimestamp) {
+            const retryDate = new Date(orderDetails.retryTimestamp).toLocaleString();
+            detailsHtml += `
+              <div class="alert alert-info">
+                <p class="mb-0"><strong>Retry attempted:</strong> ${retryDate}</p>
+              </div>
+            `;
+          }
+          
+          // Update modal content
+          modalContent.innerHTML = detailsHtml;
+          
+        } catch (error) {
+          console.error('Error loading order details:', error);
+          modalContent.innerHTML = `
+            <div class="alert alert-danger">
+              <p>Failed to load order details. Please try again later.</p>
+              <p><small>${error.message || 'Unknown error'}</small></p>
+            </div>
+          `;
+        }
+      }
+      
+      // Retry failed order
+      async function retryOrder(orderId) {
+        try {
+          const response = await fetch(`${API_URL}/retry-order/${orderId}`, {
+            method: 'POST'
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            // Show success message
+            const successAlert = document.createElement('div');
+            successAlert.className = 'alert alert-success alert-dismissible fade show';
+            successAlert.innerHTML = `
+              <strong>Success!</strong> Order retry initiated successfully.
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Add to the top of the orders list
+            const ordersContainer = document.getElementById('ordersDetailList');
+            ordersContainer.insertBefore(successAlert, ordersContainer.firstChild);
+            
+            // Reload orders after a delay
+            setTimeout(loadOrders, 2000);
+          } else {
+            throw new Error(result.error || 'Failed to retry order');
+          }
+        } catch (error) {
+          // Show error message
+          const errorAlert = document.createElement('div');
+          errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+          errorAlert.innerHTML = `
+            <strong>Error!</strong> ${error.message || 'An error occurred while retrying the order'}.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          `;
+          
+          // Add to the top of the orders list
+          const ordersContainer = document.getElementById('ordersDetailList');
+          ordersContainer.insertBefore(errorAlert, ordersContainer.firstChild);
+        }
+      }
+      
+      // Apply filters
+      function applyFilters() {
+        const statusFilter = document.getElementById('statusFilter').value;
+        const dateFilter = document.getElementById('dateFilter').value;
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        const orderCards = document.querySelectorAll('.order-card');
+        
+        orderCards.forEach(card => {
+          let showCard = true;
+          
+          // Status filter
+          if (statusFilter !== 'all') {
+            const cardStatus = card.querySelector('.status-badge').textContent.toLowerCase();
+            if (cardStatus !== statusFilter) {
+              showCard = false;
+            }
+          }
+          
+          // Date filter
+          if (dateFilter !== 'all' && showCard) {
+            const dateText = card.querySelector('.card-body p:nth-child(2)').textContent;
+            const orderDate = new Date(dateText);
+            const today = new Date();
+            
+            if (dateFilter === 'today') {
+              if (orderDate.toDateString() !== today.toDateString()) {
+                showCard = false;
+              }
+            } else if (dateFilter === 'week') {
+              const weekStart = new Date(today);
+              weekStart.setDate(today.getDate() - today.getDay());
+              if (orderDate < weekStart) {
+                showCard = false;
+              }
+            } else if (dateFilter === 'month') {
+              if (orderDate.getMonth() !== today.getMonth() || orderDate.getFullYear() !== today.getFullYear()) {
+                showCard = false;
+              }
+            }
+          }
+          
+          // Search filter
+          if (searchTerm && showCard) {
+            const cardText = card.textContent.toLowerCase();
+            if (!cardText.includes(searchTerm)) {
+              showCard = false;
+            }
+          }
+          
+          // Show or hide the card
+          card.style.display = showCard ? 'block' : 'none';
+        });
+        
+        // Show message if no results
+        const visibleCards = document.querySelectorAll('.order-card[style="display: block;"]');
+        const noResultsMsg = document.querySelector('.no-results-message');
+        
+        if (visibleCards.length === 0) {
+          if (!noResultsMsg) {
+            const msg = document.createElement('div');
+            msg.className = 'alert alert-info no-results-message';
+            msg.textContent = 'No orders match your filters.';
+            
+            const ordersContainer = document.getElementById('ordersDetailList');
+            ordersContainer.appendChild(msg);
+          }
+        } else if (noResultsMsg) {
+          noResultsMsg.remove();
+        }
+      }
+      
+      // Helper functions for styling
+      function getStatusClass(status) {
+        switch(status) {
+          case 'completed': return 'bg-success text-white';
+          case 'processing': case 'pending': return 'bg-warning';
+          case 'failed': return 'bg-danger text-white';
+          default: return 'bg-secondary text-white';
+        }
+      }
+      
+      function getStatusBadgeClass(status) {
+        switch(status) {
+          case 'completed': return 'bg-success';
+          case 'processing': case 'pending': return 'bg-warning';
+          case 'failed': return 'bg-danger';
+          default: return 'bg-secondary';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

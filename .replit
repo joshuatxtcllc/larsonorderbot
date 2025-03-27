@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "node app.js"]
 
 [workflows]
-runButton = "Restart API Server"
+runButton = "API Server Restart"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -61,6 +61,15 @@ args = "node healthcheck.js"
 
 [[workflows.workflow]]
 name = "Restart API Server"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node app.js"
+
+[[workflows.workflow]]
+name = "API Server Restart"
 author = 27546771
 mode = "sequential"
 

@@ -15,14 +15,15 @@ async function processOrders(orders) {
 
   // Launch browser with proper configuration for Replit
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: "new",
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
       '--disable-gpu'
-    ]
+    ],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null
   });
 
   try {
