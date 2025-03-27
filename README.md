@@ -215,3 +215,72 @@ orders/
 ## Support
 
 If you encounter any issues or have questions, please open an issue on this GitHub repository or contact your system administrator.
+## POS Integration
+
+The system now supports integration with Point of Sale systems and scheduled order processing:
+
+### API Endpoints for POS Integration
+
+1. **Submit POS Order** - `POST /api/pos/orders`
+   ```json
+   {
+     "apiKey": "your-api-key",
+     "orderData": {
+       "customerName": "John Doe",
+       "posOrderId": "POS123456",
+       "items": [
+         {
+           "itemNumber": "LJ123456",
+           "width": 16,
+           "height": 20,
+           "preparedness": "join",
+           "quantity": 1,
+           "customerInfo": "Customer special instructions",
+           "dueDate": "2023-12-31",
+           "notes": "Specific notes for this item"
+         }
+       ]
+     }
+   }
+   ```
+
+2. **Approve Order** - `POST /api/pos/orders/{orderId}/approve`
+   ```json
+   {
+     "apiKey": "your-api-key"
+   }
+   ```
+
+3. **Reject Order** - `POST /api/pos/orders/{orderId}/reject`
+   ```json
+   {
+     "apiKey": "your-api-key",
+     "reason": "Reason for rejection"
+   }
+   ```
+
+4. **Get Pending Approvals** - `GET /api/pos/pending-approvals?apiKey=your-api-key`
+
+### Scheduled Order Processing
+
+Orders approved through the POS integration will be automatically processed on Mondays and Wednesdays at 10:00 AM. This process:
+
+1. Collects all approved orders
+2. Submits them to Larson-Juhl
+3. Updates order status
+
+### Configuring Your POS System
+
+For Square, Shopify, or other POS systems:
+
+1. Use Zapier to connect your POS to our API
+2. When a custom frame order is placed in your POS, configure Zapier to:
+   - Format the order data according to our API structure
+   - Send it to the `/api/pos/orders` endpoint
+3. Check the POS Approvals page in our web interface to review and approve orders
+4. Approved orders will be automatically processed on schedule
+
+You can also manually trigger the scheduled processing for testing by calling:
+```
+POST /api/run-scheduled-processing
+```

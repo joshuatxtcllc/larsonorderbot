@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            apiKey: prompt('Please enter your API key'),
+            apiKey: localStorage.getItem('apiKey') || prompt('Please enter your API key (will be saved in browser)'),
             orders
           })
         });
