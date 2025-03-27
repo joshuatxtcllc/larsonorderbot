@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-// http already imported above
+const http = require('http');
 
 console.log('Running health check...');
 
