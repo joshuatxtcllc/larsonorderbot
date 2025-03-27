@@ -15,11 +15,19 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error(`Status check failed with HTTP ${response.status}`);
       }
       const data = await response.json();
-      document.getElementById('statusIndicator').innerText = data.status;
-      document.getElementById('statusIndicator').className = 'badge bg-success';
+      
+      // Fix: check if element exists before setting properties
+      const statusElement = document.getElementById('systemStatus') || document.getElementById('statusIndicator');
+      if (statusElement) {
+        statusElement.innerText = data.status || 'online';
+        statusElement.className = 'badge bg-success';
+      }
     } catch (error) {
-      document.getElementById('statusIndicator').innerText = 'offline';
-      document.getElementById('statusIndicator').className = 'badge bg-danger';
+      const statusElement = document.getElementById('systemStatus') || document.getElementById('statusIndicator');
+      if (statusElement) {
+        statusElement.innerText = 'offline';
+        statusElement.className = 'badge bg-danger';
+      }
       console.error('Error checking status:', error.message || error);
     }
   }
@@ -34,11 +42,16 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       const orders = await response.json();
       
-      const table = document.getElementById('ordersTable');
-      if (table) {
-        const tbody = table.querySelector('tbody');
+      // Check for different possible container elements
+      const ordersTable = document.getElementById('ordersTable');
+      const ordersList = document.getElementById('ordersList');
+      const ordersContainer = document.getElementById('orders-container');
+      
+      // Handle table display if that element exists
+      if (ordersTable) {
+        const tbody = ordersTable.querySelector('tbody');
         
-        if (orders.length === 0) {
+        if (!orders || orders.length === 0) {
           tbody.innerHTML = '<tr><td colspan="5" class="text-center">No orders found</td></tr>';
           return;
         }
@@ -47,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <tr class="${order.status === 'failed' ? 'table-danger' : order.status === 'completed' ? 'table-success' : 'table-warning'}">
             <td>${order.id}</td>
             <td>${new Date(order.timestamp).toLocaleString()}</td>
-            <td>${order.itemCount}</td>
+            <td>${order.itemCount || (order.orders ? order.orders.length : 0)}</td>
             <td>
               <span class="badge ${order.status === 'failed' ? 'bg-danger' : order.status === 'completed' ? 'bg-success' : 'bg-warning'}">
                 ${order.status}
@@ -60,12 +73,45 @@ document.addEventListener('DOMContentLoaded', function() {
           </tr>
         `).join('');
       }
+      
+      // Handle orders list display if that element exists
+      else if (ordersList) {
+        if (!orders || orders.length === 0) {
+          ordersList.innerHTML = '<div class="alert alert-info">No orders found</div>';
+          return;
+        }
+        
+        ordersList.innerHTML = orders.map(order => `
+          <div class="card order-card">
+            <div class="card-header ${order.status === 'failed' ? 'bg-danger' : order.status === 'completed' ? 'bg-success' : 'bg-warning'} text-white">
+              <div class="d-flex justify-content-between">
+                <span>Order #${order.id}</span>
+                <span>${new Date(order.timestamp).toLocaleString()}</span>
+              </div>
+            </div>
+            <div class="card-body">
+              <p><strong>Status:</strong> ${order.status}</p>
+              <p><strong>Items:</strong> ${order.itemCount || (order.orders ? order.orders.length : 0)}</p>
+              <div class="mt-2">
+                <a href="${API_URL}/order-status/${order.id}" class="btn btn-sm btn-primary">View Details</a>
+                ${order.status === 'failed' ? `<button onclick="retryOrder('${order.id}')" class="btn btn-sm btn-warning ms-2">Retry</button>` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
     } catch (error) {
       console.error('Error loading orders:', error);
-      const table = document.getElementById('ordersTable');
-      if (table) {
-        const tbody = table.querySelector('tbody');
-        tbody.innerHTML = '<tr><td colspan="5">Error loading orders</td></tr>';
+      
+      // Check for different possible container elements
+      const ordersTable = document.getElementById('ordersTable');
+      const ordersList = document.getElementById('ordersList');
+      
+      if (ordersTable) {
+        const tbody = ordersTable.querySelector('tbody');
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading orders</td></tr>';
+      } else if (ordersList) {
+        ordersList.innerHTML = '<div class="alert alert-danger">Error loading orders</div>';
       }
     }
   }
@@ -229,96 +275,63 @@ document.addEventListener('DOMContentLoaded', function() {
   checkStatus();
   loadOrders();
   
-  // Add proper error handling for loadOrders function
-function loadOrders() {
-  fetch('/api/orders')
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      const ordersContainer = document.getElementById('orders-container');
-      if (!ordersContainer) {
-        console.warn('Orders container not found in DOM');
-        return;
-      }
-      
-      // Clear existing orders
-      ordersContainer.innerHTML = '';
-      
-      if (data && data.length > 0) {
-        data.forEach(order => {
-          // Create order card and append to container
-          const orderCard = createOrderCard(order);
-          ordersContainer.appendChild(orderCard);
-        });
-      } else {
-        ordersContainer.innerHTML = '<div class="alert alert-info">No orders found</div>';
-      }
-    })
-    .catch(error => {
-      console.error('Error loading orders:', error);
-      // Show error message on page
-      const ordersContainer = document.getElementById('orders-container');
-      if (ordersContainer) {
-        ordersContainer.innerHTML = `<div class="alert alert-danger">Failed to load orders: ${error.message}</div>`;
-      }
-    });
-}
-
-// Create order card element
-function createOrderCard(order) {
-  const card = document.createElement('div');
-  card.className = 'card mb-3';
-  card.innerHTML = `
-    <div class="card-header ${getStatusClass(order.status)}">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Order #${order.id}</h5>
-        <span class="badge ${getStatusBadgeClass(order.status)}">${order.status}</span>
+  // Helper functions for styling based on status
+  function getStatusClass(status) {
+    switch(status) {
+      case 'completed': return 'bg-success text-white';
+      case 'processing': return 'bg-primary text-white';
+      case 'failed': return 'bg-danger text-white';
+      case 'pending': return 'bg-warning';
+      default: return 'bg-secondary text-white';
+    }
+  }
+  
+  // Get badge CSS class
+  function getStatusBadgeClass(status) {
+    switch(status) {
+      case 'completed': return 'bg-success';
+      case 'processing': return 'bg-primary';
+      case 'failed': return 'bg-danger';
+      case 'pending': return 'bg-warning';
+      default: return 'bg-secondary';
+    }
+  }
+  
+  // Create order card element - useful helper function
+  function createOrderCard(order) {
+    const card = document.createElement('div');
+    card.className = 'card mb-3';
+    
+    // Handle case where orders field might not exist
+    const orderItems = order.orders || [];
+    
+    card.innerHTML = `
+      <div class="card-header ${getStatusClass(order.status)}">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Order #${order.id}</h5>
+          <span class="badge ${getStatusBadgeClass(order.status)}">${order.status}</span>
+        </div>
       </div>
-    </div>
-    <div class="card-body">
-      <p><strong>Date:</strong> ${new Date(order.timestamp).toLocaleString()}</p>
-      <h6>Items:</h6>
-      <ul>
-        ${order.orders.map(item => `
-          <li>
-            Item #${item.itemNumber} - ${item.quantity}x 
-            ${item.size.width}"x${item.size.height}" 
-            (${item.preparedness})
-          </li>
-        `).join('')}
-      </ul>
-      ${order.error ? `<div class="alert alert-danger">Error: ${order.error}</div>` : ''}
-      ${order.retryTimestamp ? `<p><strong>Retry scheduled:</strong> ${new Date(order.retryTimestamp).toLocaleString()}</p>` : ''}
-    </div>
-  `;
-  return card;
-}
-
-// Get status CSS class
-function getStatusClass(status) {
-  switch(status) {
-    case 'completed': return 'bg-success text-white';
-    case 'processing': return 'bg-primary text-white';
-    case 'failed': return 'bg-danger text-white';
-    case 'pending': return 'bg-warning';
-    default: return 'bg-secondary text-white';
+      <div class="card-body">
+        <p><strong>Date:</strong> ${new Date(order.timestamp).toLocaleString()}</p>
+        <h6>Items:</h6>
+        ${orderItems.length > 0 ? `
+          <ul>
+            ${orderItems.map(item => `
+              <li>
+                Item #${item.itemNumber} - ${item.quantity}x 
+                ${item.size.width}"x${item.size.height}" 
+                (${item.preparedness})
+              </li>
+            `).join('')}
+          </ul>
+        ` : '<p>No item details available</p>'}
+        ${order.error ? `<div class="alert alert-danger">Error: ${order.error}</div>` : ''}
+        ${order.retryTimestamp ? `<p><strong>Retry scheduled:</strong> ${new Date(order.retryTimestamp).toLocaleString()}</p>` : ''}
+      </div>
+    `;
+    return card;
   }
-}
-
-// Get badge CSS class
-function getStatusBadgeClass(status) {
-  switch(status) {
-    case 'completed': return 'bg-success';
-    case 'processing': return 'bg-primary';
-    case 'failed': return 'bg-danger';
-    case 'pending': return 'bg-warning';
-    default: return 'bg-secondary';
-  }
-}
 
 // Refresh data every 30 seconds
 setInterval(() => {
