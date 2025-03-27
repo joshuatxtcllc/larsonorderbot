@@ -1,7 +1,6 @@
-
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 
 console.log('Running health check...');
 
@@ -53,13 +52,6 @@ req.on('error', (error) => {
 req.end();
 
 console.log('\nHealth check complete. Run this script after starting the server to identify issues.');
-// Health check script for the Frame Order API
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-
-console.log('Running health check...');
-
 // Check API endpoint
 const apiCheck = new Promise((resolve, reject) => {
   const options = {
@@ -100,7 +92,7 @@ const apiCheck = new Promise((resolve, reject) => {
 // Check orders directory
 const ordersCheck = new Promise((resolve, reject) => {
   const ordersDir = path.join(__dirname, 'src', 'orders');
-  
+
   try {
     if (fs.existsSync(ordersDir)) {
       resolve('Orders directory exists');
