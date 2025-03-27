@@ -157,7 +157,6 @@ if (require.main === module) {
 }
 
 module.exports = { processOrders, loginToLarsonJuhl, processOrder };
-const puppeteer = require('puppeteer');
 
 /**
  * Process frame orders by automating interactions with the Larson-Juhl website
