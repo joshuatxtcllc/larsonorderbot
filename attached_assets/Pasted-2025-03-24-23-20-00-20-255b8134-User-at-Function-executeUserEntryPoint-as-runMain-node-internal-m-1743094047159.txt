@@ -1,0 +1,101 @@
+2025-03-24 23:20:00.20
+255b8134
+User
+at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:173:12)
+2025-03-24 23:20:00.20
+255b8134
+User
+at node:internal/main/run_main_module:28:49 {
+2025-03-24 23:20:00.20
+255b8134
+User
+code: 'MODULE_NOT_FOUND',
+2025-03-24 23:20:00.20
+255b8134
+User
+requireStack: []
+2025-03-24 23:20:00.20
+255b8134
+User
+}
+2025-03-24 23:20:00.20
+255b8134
+User
+2025-03-24 23:20:00.20
+255b8134
+User
+Node.js v20.18.1
+2025-03-24 23:20:00.22
+255b8134
+System
+command finished with error [sh -c npm run start]: exit status 1
+2025-03-24 23:20:05.78
+255b8134
+User
+node:internal/modules/cjs/loader:1228
+2025-03-24 23:20:05.78
+255b8134
+User
+throw err;
+2025-03-24 23:20:05.78
+255b8134
+User
+^
+2025-03-24 23:20:05.78
+255b8134
+User
+2025-03-24 23:20:05.78
+255b8134
+User
+Error: Cannot find module '/home/runner/workspace/frame-order-zapier-integration.js'
+2025-03-24 23:20:05.78
+255b8134
+User
+at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+2025-03-24 23:20:05.78
+255b8134
+User
+at Module._load (node:internal/modules/cjs/loader:1051:27)
+2025-03-24 23:20:05.78
+255b8134
+User
+at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:173:12)
+2025-03-24 23:20:05.78
+255b8134
+User
+at node:internal/main/run_main_module:28:49 {
+2025-03-24 23:20:05.78
+255b8134
+User
+code: 'MODULE_NOT_FOUND',
+2025-03-24 23:20:05.78
+255b8134
+User
+requireStack: []
+2025-03-24 23:20:05.78
+255b8134
+User
+}
+2025-03-24 23:20:05.78
+255b8134
+User
+2025-03-24 23:20:05.78
+255b8134
+User
+Node.js v20.18.1
+2025-03-24 23:20:05.80
+255b8134
+System
+command finished with error [sh -c npm run start]: exit status 1
+2025-03-24 23:20:15.15
+255b8134
+System
+crash loop detected
+2025-03-26 20:47:28.86
+9b568c14
+System
+error refreshing Repl Identity replid=9b568c14-87e7-40e0-ae1d-af6f956dc70d token_source=web error=failed to run identity daemon: unable to renew identity: failed to send request to heimdall: Get "https://heimdall.replit.com/renew_identity": tls: failed to verify certificate: x509: certificate is valid for ingress.local, not heimdall.replit.com
+
+Wrap
+
+Colors
