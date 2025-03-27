@@ -2,21 +2,20 @@
 {
   "name": "larson-juhl-frame-automation",
   "version": "1.0.0",
-  "description": "Automated system for custom framing businesses to place orders with Larson-Juhl wholesaler",
-  "main": "src/frame-order-zapier-integration.js",
+  "description": "Automated system for custom framing businesses using Larson-Juhl",
+  "main": "app.js",
   "scripts": {
-    "start": "node src/frame-order-zapier-integration.js",
+    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "body-parser": "^1.20.2",
     "dotenv": "^16.3.1",
-    "puppeteer": "^21.5.2",
+    "express": "^4.18.2",
+    "puppeteer": "^21.0.3",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
-  "engines": {
-    "node": ">=14.0.0"
-  }
+  "author": "Your Name",
+  "license": "MIT"
 }

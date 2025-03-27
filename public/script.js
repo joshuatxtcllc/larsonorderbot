@@ -229,9 +229,100 @@ document.addEventListener('DOMContentLoaded', function() {
   checkStatus();
   loadOrders();
   
-  // Refresh data every 30 seconds
-  setInterval(() => {
-    checkStatus();
-    loadOrders();
-  }, 30000);
+  // Add proper error handling for loadOrders function
+function loadOrders() {
+  fetch('/api/orders')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      const ordersContainer = document.getElementById('orders-container');
+      if (!ordersContainer) {
+        console.warn('Orders container not found in DOM');
+        return;
+      }
+      
+      // Clear existing orders
+      ordersContainer.innerHTML = '';
+      
+      if (data && data.length > 0) {
+        data.forEach(order => {
+          // Create order card and append to container
+          const orderCard = createOrderCard(order);
+          ordersContainer.appendChild(orderCard);
+        });
+      } else {
+        ordersContainer.innerHTML = '<div class="alert alert-info">No orders found</div>';
+      }
+    })
+    .catch(error => {
+      console.error('Error loading orders:', error);
+      // Show error message on page
+      const ordersContainer = document.getElementById('orders-container');
+      if (ordersContainer) {
+        ordersContainer.innerHTML = `<div class="alert alert-danger">Failed to load orders: ${error.message}</div>`;
+      }
+    });
+}
+
+// Create order card element
+function createOrderCard(order) {
+  const card = document.createElement('div');
+  card.className = 'card mb-3';
+  card.innerHTML = `
+    <div class="card-header ${getStatusClass(order.status)}">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Order #${order.id}</h5>
+        <span class="badge ${getStatusBadgeClass(order.status)}">${order.status}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <p><strong>Date:</strong> ${new Date(order.timestamp).toLocaleString()}</p>
+      <h6>Items:</h6>
+      <ul>
+        ${order.orders.map(item => `
+          <li>
+            Item #${item.itemNumber} - ${item.quantity}x 
+            ${item.size.width}"x${item.size.height}" 
+            (${item.preparedness})
+          </li>
+        `).join('')}
+      </ul>
+      ${order.error ? `<div class="alert alert-danger">Error: ${order.error}</div>` : ''}
+      ${order.retryTimestamp ? `<p><strong>Retry scheduled:</strong> ${new Date(order.retryTimestamp).toLocaleString()}</p>` : ''}
+    </div>
+  `;
+  return card;
+}
+
+// Get status CSS class
+function getStatusClass(status) {
+  switch(status) {
+    case 'completed': return 'bg-success text-white';
+    case 'processing': return 'bg-primary text-white';
+    case 'failed': return 'bg-danger text-white';
+    case 'pending': return 'bg-warning';
+    default: return 'bg-secondary text-white';
+  }
+}
+
+// Get badge CSS class
+function getStatusBadgeClass(status) {
+  switch(status) {
+    case 'completed': return 'bg-success';
+    case 'processing': return 'bg-primary';
+    case 'failed': return 'bg-danger';
+    case 'pending': return 'bg-warning';
+    default: return 'bg-secondary';
+  }
+}
+
+// Refresh data every 30 seconds
+setInterval(() => {
+  checkStatus();
+  loadOrders();
+}, 30000);
 });
