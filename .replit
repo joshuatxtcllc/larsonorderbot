@@ -98,5 +98,3 @@ args = "node app.js"
 [[ports]]
 localPort = 3000
 externalPort = 80
-protocol = "http"
-exposeLocalhost = true
