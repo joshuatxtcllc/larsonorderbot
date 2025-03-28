@@ -366,4 +366,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Dashboard available at http://0.0.0.0:${PORT}`);
+  console.log(`Server is ready and listening for connections!`);
 });
