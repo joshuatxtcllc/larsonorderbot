@@ -16,7 +16,56 @@
     .action-buttons {
       margin-bottom: 20px;
     }
+    .offline-banner {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    .online-banner {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
   </style>
+  <script>
+    // Function to check API status
+    async function checkAPIStatus() {
+      try {
+        const response = await fetch('/api/status');
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('api-status').textContent = 'Online';
+          document.getElementById('api-status').style.color = '#28a745';
+          document.getElementById('system-status').innerHTML = '<div class="online-banner">System is currently online</div>';
+          document.getElementById('orders-directory').textContent = 'Available';
+          console.log('API status: Online');
+        } else {
+          document.getElementById('api-status').textContent = 'Offline';
+          document.getElementById('api-status').style.color = '#dc3545';
+          document.getElementById('system-status').innerHTML = '<div class="offline-banner">System is currently offline</div>';
+          document.getElementById('orders-directory').textContent = 'Checking...';
+          console.log('API status: Offline');
+        }
+      } catch (error) {
+        document.getElementById('api-status').textContent = 'Offline';
+        document.getElementById('api-status').style.color = '#dc3545';
+        document.getElementById('system-status').innerHTML = '<div class="offline-banner">System is currently offline</div>';
+        document.getElementById('orders-directory').textContent = 'Checking...';
+        console.error('Error checking API status:', error);
+        console.log('API status: Offline (error)');
+      }
+    }
+    
+    // Check API status every 10 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAPIStatus();
+      setInterval(checkAPIStatus, 10000);
+    });
+  </script>
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
