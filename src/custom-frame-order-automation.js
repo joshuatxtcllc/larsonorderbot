@@ -108,19 +108,19 @@ async function processOrder(page, order) {
     // Add to cart
     await Promise.all([
       page.click('#product-addtocart-button'),
-      page.waitForNavigation({ waitUntil: 'networkidle0' })
+      page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 })
     ]);
 
     console.log('Item added to cart successfully');
 
     // Navigate to cart
-    await page.goto('https://shop.larsonjuhl.com/checkout/cart/', { waitUntil: 'networkidle0' });
+    await page.goto('https://shop.larsonjuhl.com/checkout/cart/', { waitUntil: 'networkidle0', timeout: 30000 });
 
     // Proceed to checkout
     try {
       await Promise.all([
         page.click('.action.primary.checkout'),
-        page.waitForNavigation({ waitUntil: 'networkidle0' })
+        page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 30000 })
       ]);
     } catch (error) {
       console.log('Error clicking checkout button or not required:', error);
@@ -131,8 +131,18 @@ async function processOrder(page, order) {
   } catch (error) {
     console.error('Error processing order:', error);
     throw error;
+  } finally {
+    try {
+      // Always close the browser to prevent memory leaks
+      if (browser) await browser.close();
+    } catch (err) {
+      console.error('Error closing browser:', err);
+    }
   }
 }
+
+// Import the puppeteer config
+const puppeteerConfig = require('./puppeteer-config');
 
 // Example frame order data structure
 const frameOrders = [
