@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,57 +31,38 @@
       border-radius: 5px;
       margin-bottom: 20px;
     }
-  </style>
-  <script>
-    // Function to check API status
-    async function checkAPIStatus() {
-      try {
-        const response = await fetch('/api/status');
-        if (response.ok) {
-          const data = await response.json();
-          document.getElementById('api-status').textContent = 'Online';
-          document.getElementById('api-status').style.color = '#28a745';
-          document.getElementById('system-status').innerHTML = '<div class="online-banner">System is currently online</div>';
-          document.getElementById('orders-directory').textContent = 'Available';
-          console.log('API status: Online');
-        } else {
-          document.getElementById('api-status').textContent = 'Offline';
-          document.getElementById('api-status').style.color = '#dc3545';
-          document.getElementById('system-status').innerHTML = '<div class="offline-banner">System is currently offline</div>';
-          document.getElementById('orders-directory').textContent = 'Checking...';
-          console.log('API status: Offline');
-        }
-      } catch (error) {
-        document.getElementById('api-status').textContent = 'Offline';
-        document.getElementById('api-status').style.color = '#dc3545';
-        document.getElementById('system-status').innerHTML = '<div class="offline-banner">System is currently offline</div>';
-        document.getElementById('orders-directory').textContent = 'Checking...';
-        console.error('Error checking API status:', error);
-        console.log('API status: Offline (error)');
-      }
+    .feature-card {
+      height: 100%;
+      transition: transform 0.3s;
     }
-    
-    // Check API status every 10 seconds
-    document.addEventListener('DOMContentLoaded', function() {
-      checkAPIStatus();
-      setInterval(checkAPIStatus, 10000);
-    });
-  </script>
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #0056b3;
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-      <a class="navbar-brand" href="/">Frame Order System</a>
+      <a class="navbar-brand" href="/"><i class="fas fa-layer-group me-2"></i>Frame Order System</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link active" href="/">Dashboard</a>
+            <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> Dashboard</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/orders.html">My Orders</a>
+            <a class="nav-link" href="/orders.html"><i class="fas fa-clipboard-list me-1"></i> My Orders</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/pos-approval.html"><i class="fas fa-check-circle me-1"></i> POS Approvals</a>
           </li>
         </ul>
       </div>
@@ -90,83 +72,278 @@
   <div class="container mt-4">
     <div class="row">
       <div class="col-md-12 mb-4">
-        <h1>Frame Order System</h1>
+        <h1><i class="fas fa-layer-group me-2"></i>Frame Order Management System</h1>
         <p class="lead">Submit custom frame orders to Larson-Juhl and track their status</p>
-        <div id="status-indicator" class="alert alert-success">
-          Checking API status...
+        <div id="system-status">
+          <div class="alert alert-info">Checking system status...</div>
         </div>
       </div>
     </div>
 
-    <div class="row">
+    <div class="row mb-4">
       <div class="col-md-6">
-        <div class="card mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">System Status</h5>
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-server me-2"></i>System Status</h5>
           </div>
           <div class="card-body">
-            <p>API Status: <span id="api-status">Checking...</span></p>
-            <p>Orders Directory: <span id="orders-dir-status">Checking...</span></p>
+            <p><strong><i class="fas fa-circle me-2"></i>API Status:</strong> <span id="api-status">Checking...</span></p>
+            <p><strong><i class="fas fa-folder me-2"></i>Orders Directory:</strong> <span id="orders-dir-status">Checking...</span></p>
+            <div class="mt-3">
+              <a href="/api/status" class="btn btn-sm btn-outline-primary" target="_blank"><i class="fas fa-external-link-alt me-1"></i> Check API Directly</a>
+              <button id="run-health-check" class="btn btn-sm btn-outline-success ms-2"><i class="fas fa-heartbeat me-1"></i> Run Health Check</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Orders Overview</h5>
+          </div>
+          <div class="card-body">
+            <div id="orders-overview">Loading order statistics...</div>
+            <div class="mt-3">
+              <a href="/orders.html" class="btn btn-primary"><i class="fas fa-list me-1"></i> View All Orders</a>
+              <a href="#new-order-section" class="btn btn-success ms-2"><i class="fas fa-plus me-1"></i> New Order</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-5">
+      <div class="col-12">
+        <h2 class="mb-4"><i class="fas fa-cogs me-2"></i>Features</h2>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="card feature-card">
+          <div class="card-body text-center">
+            <div class="feature-icon">
+              <i class="fas fa-upload"></i>
+            </div>
+            <h5 class="card-title">Manual Order Entry</h5>
+            <p class="card-text">Submit custom frame orders directly through our user-friendly web interface.</p>
+            <a href="#new-order-section" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Create Order</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="card feature-card">
+          <div class="card-body text-center">
+            <div class="feature-icon">
+              <i class="fas fa-sync-alt"></i>
+            </div>
+            <h5 class="card-title">Zapier Integration</h5>
+            <p class="card-text">Automatically place orders from your existing systems using Zapier workflows.</p>
+            <a href="/api/docs" class="btn btn-primary"><i class="fas fa-book me-1"></i> API Documentation</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-4">
+        <div class="card feature-card">
+          <div class="card-body text-center">
+            <div class="feature-icon">
+              <i class="fas fa-shopping-cart"></i>
+            </div>
+            <h5 class="card-title">POS Integration</h5>
+            <p class="card-text">Connect your point of sale system for a seamless ordering experience.</p>
+            <a href="/pos-approval.html" class="btn btn-primary"><i class="fas fa-check-circle me-1"></i> POS Approvals</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="new-order-section" class="row mb-5">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Order</h3>
+          </div>
+          <div class="card-body">
+            <form id="orderForm">
+              <div id="ordersContainer">
+                <div class="frame-order mb-4 p-3 border rounded">
+                  <h5><i class="fas fa-square me-2"></i>Frame Details</h5>
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="itemNumber0" class="form-label">Larson-Juhl Item Number</label>
+                      <i class="fas fa-question-circle tooltip-help" data-bs-toggle="tooltip" title="Enter the Larson-Juhl moulding number (e.g. LJ123456)"></i>
+                      <input type="text" class="form-control item-number" id="itemNumber0" placeholder="e.g. 562810" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="quantity0" class="form-label">Quantity</label>
+                      <input type="number" class="form-control quantity" id="quantity0" min="1" value="1" required>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-3 mb-3">
+                      <label for="width0" class="form-label">Width (inches)</label>
+                      <input type="number" class="form-control width" id="width0" step="0.125" placeholder="e.g. 16.25" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                      <label for="height0" class="form-label">Height (inches)</label>
+                      <input type="number" class="form-control height" id="height0" step="0.125" placeholder="e.g. 20.5" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="preparedness0" class="form-label">Unit of Measurement</label>
+                      <i class="fas fa-question-circle tooltip-help" data-bs-toggle="tooltip" title="Select 'Join' for joined frames or 'Length' for cut lengths"></i>
+                      <select class="form-select preparedness" id="preparedness0" required>
+                        <option value="join">Join (Assembled Frame)</option>
+                        <option value="length">Length (Cut Only)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-outline-danger btn-sm remove-order" disabled>
+                    <i class="fas fa-trash-alt me-1"></i> Remove
+                  </button>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <button type="button" id="addOrderBtn" class="btn btn-outline-primary">
+                  <i class="fas fa-plus me-1"></i> Add Another Frame
+                </button>
+              </div>
+              
+              <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="reset" class="btn btn-outline-secondary me-md-2">
+                  <i class="fas fa-undo me-1"></i> Reset
+                </button>
+                <button type="submit" class="btn btn-success">
+                  <i class="fas fa-paper-plane me-1"></i> Submit Order
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h3 class="mb-0"><i class="fas fa-history me-2"></i>Recent Orders</h3>
+          </div>
+          <div class="card-body">
+            <div id="orders-container">
+              <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading recent orders...</p>
+              </div>
+            </div>
+            <div class="mt-3 text-center">
+              <a href="/orders.html" class="btn btn-primary">
+                <i class="fas fa-list-alt me-1"></i> View All Orders
+              </a>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <footer class="bg-dark text-white py-4 mt-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6">
+          <h5>Frame Order System</h5>
+          <p>Automated system for custom framing businesses to place orders with Larson-Juhl wholesaler</p>
+        </div>
+        <div class="col-md-3">
+          <h5>Links</h5>
+          <ul class="list-unstyled">
+            <li><a href="/" class="text-white">Home</a></li>
+            <li><a href="/orders.html" class="text-white">Orders</a></li>
+            <li><a href="/api/docs" class="text-white">API Documentation</a></li>
+          </ul>
+        </div>
+        <div class="col-md-3">
+          <h5>Resources</h5>
+          <ul class="list-unstyled">
+            <li><a href="https://github.com/yourusername/larson-juhl-frame-automation" class="text-white">GitHub Repository</a></li>
+            <li><a href="https://www.larsonjuhl.com/" class="text-white" target="_blank">Larson-Juhl Website</a></li>
+          </ul>
+        </div>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-12 text-center">
+          <p class="mb-0">&copy; 2025 Frame Order System. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Check API status
-      checkApiStatus();
-      checkOrdersDirectory(); // Added check for orders directory
-
-      // Check status every 30 seconds
-      setInterval(checkApiStatus, 30000);
-      setInterval(checkOrdersDirectory, 30000); // Added interval for orders directory check
-
-      function checkApiStatus() {
-        fetch('/api/status')
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('API status check failed with HTTP ' + response.status);
-            }
-            return response.json();
-          })
-          .then(data => {
-            document.getElementById('api-status').textContent = 'Online';
-            document.getElementById('api-status').className = 'text-success';
-            document.getElementById('status-indicator').className = 'alert alert-success';
-            document.getElementById('status-indicator').textContent = 'System is online and operational';
-            console.log('API status: Online');
-          })
-          .catch(error => {
-            document.getElementById('api-status').textContent = 'Offline';
-            document.getElementById('api-status').className = 'text-danger';
-            document.getElementById('status-indicator').className = 'alert alert-danger';
-            document.getElementById('status-indicator').textContent = 'System is currently offline';
-            console.error('Error checking API status:', error);
-          });
+      // Initialize tooltips
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+      var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+      });
+      
+      // Run health check button
+      const healthCheckBtn = document.getElementById('run-health-check');
+      if (healthCheckBtn) {
+        healthCheckBtn.addEventListener('click', function() {
+          fetch('/api/run-health-check', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+              alert('Health check completed: ' + (data.success ? 'All systems operational' : 'Issues detected'));
+            })
+            .catch(error => {
+              console.error('Error running health check:', error);
+              alert('Error running health check');
+            });
+        });
       }
-
-      function checkOrdersDirectory() {
+      
+      // Load order statistics
+      function loadOrderStats() {
         fetch('/api/orders')
-          .then(response => {
-            if (!response.ok) {
-              throw new Error('Orders directory check failed with HTTP ' + response.status);
+          .then(response => response.json())
+          .then(orders => {
+            const completed = orders.filter(o => o.status === 'completed').length;
+            const pending = orders.filter(o => o.status === 'pending').length;
+            const failed = orders.filter(o => o.status === 'failed').length;
+            
+            const overview = document.getElementById('orders-overview');
+            if (overview) {
+              overview.innerHTML = `
+                <div class="row text-center">
+                  <div class="col-4">
+                    <h3 class="text-success">${completed}</h3>
+                    <p>Completed</p>
+                  </div>
+                  <div class="col-4">
+                    <h3 class="text-warning">${pending}</h3>
+                    <p>Pending</p>
+                  </div>
+                  <div class="col-4">
+                    <h3 class="text-danger">${failed}</h3>
+                    <p>Failed</p>
+                  </div>
+                </div>
+              `;
             }
-            return response.json(); // Assuming it returns something on success
-          })
-          .then(data => {
-            document.getElementById('orders-dir-status').textContent = 'Available';
-            document.getElementById('orders-dir-status').className = 'text-success';
-            console.log('Orders directory: Available');
           })
           .catch(error => {
-            document.getElementById('orders-dir-status').textContent = 'Unavailable';
-            document.getElementById('orders-dir-status').className = 'text-danger';
-            console.error('Error checking orders directory:', error);
+            console.error('Error loading order stats:', error);
+            const overview = document.getElementById('orders-overview');
+            if (overview) {
+              overview.innerHTML = `<p class="text-danger">Error loading order statistics</p>`;
+            }
           });
       }
+      
+      loadOrderStats();
+      setInterval(loadOrderStats, 30000);
     });
   </script>
 </body>

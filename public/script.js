@@ -15,18 +15,34 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       const data = await response.json();
 
-      // Fix: check if element exists before setting properties
-      const statusElement = document.getElementById('systemStatus') || document.getElementById('statusIndicator');
-      if (statusElement) {
-        statusElement.innerText = data.status || 'online';
-        statusElement.className = 'badge bg-success';
+      // Update multiple possible status elements
+      const apiStatusElement = document.getElementById('api-status');
+      if (apiStatusElement) {
+        apiStatusElement.innerText = data.status || 'online';
+        apiStatusElement.className = 'text-success';
       }
+      
+      // Update system status banner
+      const systemStatusElement = document.getElementById('system-status');
+      if (systemStatusElement) {
+        systemStatusElement.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>System is online and operational</div>';
+      }
+      
+      console.log('API status: Online');
     } catch (error) {
-      const statusElement = document.getElementById('systemStatus') || document.getElementById('statusIndicator');
-      if (statusElement) {
-        statusElement.innerText = 'offline';
-        statusElement.className = 'badge bg-danger';
+      // Update API status indicator
+      const apiStatusElement = document.getElementById('api-status');
+      if (apiStatusElement) {
+        apiStatusElement.innerText = 'offline';
+        apiStatusElement.className = 'text-danger';
       }
+      
+      // Update system status banner
+      const systemStatusElement = document.getElementById('system-status');
+      if (systemStatusElement) {
+        systemStatusElement.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>System is currently offline</div>';
+      }
+      
       console.error('Error checking status:', error.message || error);
     }
   }
@@ -41,11 +57,35 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       const orders = await response.json();
 
+      // Update the orders directory status
+      const ordersDirStatus = document.getElementById('orders-dir-status');
+      if (ordersDirStatus) {
+        ordersDirStatus.textContent = 'Available';
+        ordersDirStatus.className = 'text-success';
+      }
+
       // Check for different possible container elements
       const ordersTable = document.getElementById('ordersTable');
       const ordersList = document.getElementById('ordersList');
       const ordersContainer = document.getElementById('orders-container');
 
+      // Handle orders container first (on dashboard page)
+      if (ordersContainer) {
+        if (!orders || orders.length === 0) {
+          ordersContainer.innerHTML = '<div class="alert alert-info">No orders found</div>';
+          return;
+        }
+
+        // Display only the most recent 3 orders
+        const recentOrders = orders.slice(0, 3);
+        ordersContainer.innerHTML = '';
+        
+        recentOrders.forEach(order => {
+          const orderCard = createOrderCard(order);
+          ordersContainer.appendChild(orderCard);
+        });
+      }
+      
       // Handle table display if that element exists
       if (ordersTable) {
         const tbody = ordersTable.querySelector('tbody');

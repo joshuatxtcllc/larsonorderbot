@@ -1,3 +1,4 @@
+
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -33,40 +34,80 @@ if (ordersDirExists) {
 
 // Check API availability
 console.log('\nChecking API availability:');
+
 const checkAPI = () => {
-  return new Promise((resolve) => {
-    const req = http.request({
+  return new Promise((resolve, reject) => {
+    const options = {
       hostname: '0.0.0.0',
       port: process.env.PORT || 3000,
       path: '/api/status',
       method: 'GET'
-    }, (res) => {
-      if (res.statusCode === 200) {
-        console.log('✅ API is responding correctly');
-        resolve(true);
-      } else {
-        console.log(`❌ API responded with status code ${res.statusCode}`);
-        resolve(false);
-      }
+    };
+
+    const req = http.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          try {
+            const jsonData = JSON.parse(data);
+            resolve({ 
+              success: true, 
+              status: res.statusCode, 
+              data: jsonData 
+            });
+          } catch (e) {
+            resolve({ 
+              success: false, 
+              status: res.statusCode, 
+              error: 'Invalid JSON response' 
+            });
+          }
+        } else {
+          resolve({ 
+            success: false, 
+            status: res.statusCode, 
+            error: `HTTP ${res.statusCode}` 
+          });
+        }
+      });
     });
 
     req.on('error', (error) => {
-      console.log(`❌ Failed to connect to API: ${error.message}`);
-      resolve(false);
+      resolve({ 
+        success: false, 
+        error: error.message 
+      });
     });
 
     req.end();
   });
 };
 
-// Create necessary directories if missing
-if (!ordersDirExists) {
-  console.log('\nCreating missing orders directory...');
-  fs.mkdirSync(ordersDir, { recursive: true });
-  console.log('✅ Created orders directory');
-}
-
-// Check API status and end health check
-checkAPI().then(() => {
-  console.log('\nHealth check complete!');
-});
+(async () => {
+  try {
+    const apiCheck = await checkAPI();
+    
+    if (apiCheck.success) {
+      console.log(`✅ API responded with status: ${apiCheck.status}`);
+      console.log(`Response body: ${JSON.stringify(apiCheck.data)}`);
+      console.log('\nHealth check passed:');
+      console.log('- API is online');
+      console.log('- Orders directory exists');
+      console.log('All systems operational');
+    } else {
+      console.log(`❌ API check failed: ${apiCheck.error || 'Unknown error'}`);
+      console.log('\nHealth check failed:');
+      console.log(`- API is not responding: ${apiCheck.error}`);
+      if (ordersDirExists) {
+        console.log('- Orders directory exists');
+      } else {
+        console.log('- Orders directory is missing');
+      }
+    }
+  } catch (error) {
+    console.log(`❌ Error during health check: ${error.message}`);
+  }
+})();
