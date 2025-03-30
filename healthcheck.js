@@ -41,7 +41,8 @@ const checkAPI = () => {
       hostname: '0.0.0.0',
       port: process.env.PORT || 3000,
       path: '/api/status',
-      method: 'GET'
+      method: 'GET',
+      timeout: 5000 // 5 second timeout
     };
 
     const req = http.request(options, (res) => {
@@ -79,6 +80,14 @@ const checkAPI = () => {
       resolve({ 
         success: false, 
         error: error.message 
+      });
+    });
+
+    req.on('timeout', () => {
+      req.abort();
+      resolve({
+        success: false,
+        error: 'Request timed out'
       });
     });
 

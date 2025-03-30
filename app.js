@@ -357,6 +357,41 @@ app.post('/api/run-scheduled-processing', async (req, res) => {
   }
 });
 
+// Run health check endpoint
+app.post('/api/run-health-check', async (req, res) => {
+  try {
+    const { spawn } = require('child_process');
+    const healthCheck = spawn('node', ['healthcheck.js']);
+    
+    let output = '';
+    
+    healthCheck.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    healthCheck.stderr.on('data', (data) => {
+      console.error(`Health check error: ${data}`);
+    });
+    
+    healthCheck.on('close', (code) => {
+      const success = code === 0;
+      console.log(`Health check completed with code ${code}`);
+      
+      return res.status(200).json({
+        success,
+        message: success ? 'Health check passed' : 'Health check failed',
+        details: output
+      });
+    });
+  } catch (error) {
+    console.error('Error running health check:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  }
+});
+
 // Serve index.html for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

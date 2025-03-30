@@ -292,14 +292,45 @@
       const healthCheckBtn = document.getElementById('run-health-check');
       if (healthCheckBtn) {
         healthCheckBtn.addEventListener('click', function() {
+          // Disable button and show loading state
+          healthCheckBtn.disabled = true;
+          healthCheckBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Running...';
+          
           fetch('/api/run-health-check', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-              alert('Health check completed: ' + (data.success ? 'All systems operational' : 'Issues detected'));
+              console.log('Health check result:', data);
+              // Show result in a more detailed way
+              const resultMsg = data.success ? 
+                'All systems operational' : 
+                'Issues detected: ' + (data.details || 'Check the logs for more information');
+              
+              // Create alert to show the result
+              const alertDiv = document.createElement('div');
+              alertDiv.className = `alert alert-${data.success ? 'success' : 'warning'} alert-dismissible fade show mt-3`;
+              alertDiv.innerHTML = `
+                <strong><i class="fas fa-${data.success ? 'check-circle' : 'exclamation-triangle'} me-2"></i>Health Check Result:</strong> ${resultMsg}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              `;
+              
+              // Insert the alert before the card
+              const statusCard = document.querySelector('.card:has(#api-status)');
+              if (statusCard && statusCard.parentNode) {
+                statusCard.parentNode.insertBefore(alertDiv, statusCard.nextSibling);
+              } else {
+                document.querySelector('.container').prepend(alertDiv);
+              }
+              
+              // Reset button
+              healthCheckBtn.disabled = false;
+              healthCheckBtn.innerHTML = '<i class="fas fa-heartbeat me-1"></i> Run Health Check';
             })
             .catch(error => {
               console.error('Error running health check:', error);
-              alert('Error running health check');
+              alert('Error running health check: ' + error.message);
+              // Reset button
+              healthCheckBtn.disabled = false;
+              healthCheckBtn.innerHTML = '<i class="fas fa-heartbeat me-1"></i> Run Health Check';
             });
         });
       }
