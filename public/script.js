@@ -21,13 +21,13 @@ document.addEventListener('DOMContentLoaded', function() {
         apiStatusElement.innerText = data.status || 'online';
         apiStatusElement.className = 'text-success';
       }
-      
+
       // Update system status banner
       const systemStatusElement = document.getElementById('system-status');
       if (systemStatusElement) {
         systemStatusElement.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>System is online and operational</div>';
       }
-      
+
       console.log('API status: Online');
     } catch (error) {
       // Update API status indicator
@@ -36,13 +36,13 @@ document.addEventListener('DOMContentLoaded', function() {
         apiStatusElement.innerText = 'offline';
         apiStatusElement.className = 'text-danger';
       }
-      
+
       // Update system status banner
       const systemStatusElement = document.getElementById('system-status');
       if (systemStatusElement) {
         systemStatusElement.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>System is currently offline</div>';
       }
-      
+
       console.error('Error checking status:', error.message || error);
     }
   }
@@ -79,13 +79,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Display only the most recent 3 orders
         const recentOrders = orders.slice(0, 3);
         ordersContainer.innerHTML = '';
-        
+
         recentOrders.forEach(order => {
           const orderCard = createOrderCard(order);
           ordersContainer.appendChild(orderCard);
         });
       }
-      
+
       // Handle table display if that element exists
       if (ordersTable) {
         const tbody = ordersTable.querySelector('tbody');
@@ -202,6 +202,9 @@ document.addEventListener('DOMContentLoaded', function() {
           });
         });
 
+        // Get API key from localStorage  (Corrected to handle multiple orders)
+        const apiKey = localStorage.getItem('apiKey') || prompt('Please enter your API key (will be saved in browser)');
+
         // Send to API
         const response = await fetch(`${API_URL}/process-orders`, {
           method: 'POST',
@@ -209,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            apiKey: localStorage.getItem('apiKey') || prompt('Please enter your API key (will be saved in browser)'),
+            apiKey: apiKey,
             orders
           })
         });
