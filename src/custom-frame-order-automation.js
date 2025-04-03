@@ -5,46 +5,176 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 // Add stealth plugin to avoid detection
 puppeteer.use(StealthPlugin());
 
+// Import utilities and logger
+let utils, logger, monitoring;
+try {
+  utils = require('./utils');
+  logger = require('./logger');
+  monitoring = require('./monitoring');
+} catch (error) {
+  console.error('Error importing utility modules:', error);
+  // Fallback implementation for backwards compatibility
+  utils = {
+    withRetry: async (fn, options) => fn(),
+    formatError: (error) => ({ message: error.message, stack: error.stack })
+  };
+  logger = {
+    error: console.error,
+    warn: console.warn,
+    info: console.log,
+    debug: console.log
+  };
+  monitoring = {
+    recordOrderProcessed: () => {},
+    recordOrderFailed: () => {}
+  };
+}
+
 // Process orders function that will be exported
 async function processOrders(orders) {
-  console.log('Processing orders:', orders);
+  logger.info('Processing orders', { orderCount: orders ? orders.length : 0 });
 
   if (!orders || orders.length === 0) {
-    throw new Error('No orders to process');
+    const error = new Error('No orders to process');
+    logger.error('Order processing failed', { error: utils.formatError(error) });
+    throw error;
   }
 
   // Launch browser with proper configuration for Replit
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--disable-gpu'
-    ],
-    ignoreDefaultArgs: ['--disable-extensions']
-  });
+  let browser;
+  try {
+    browser = await utils.withRetry(
+      () => puppeteer.launch({
+        headless: "new",
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu'
+        ],
+        ignoreDefaultArgs: ['--disable-extensions'],
+        timeout: 60000 // Increase timeout for slow starts
+      }),
+      { maxRetries: 3, initialDelay: 2000 }
+    );
+  } catch (error) {
+    logger.error('Failed to launch browser', { error: utils.formatError(error) });
+    monitoring?.recordOrderFailed();
+    throw new Error(`Failed to launch browser: ${error.message}`);
+  }
 
   try {
     const page = await browser.newPage();
+    
+    // Set debug level and page timeout
+    await page.setDefaultNavigationTimeout(60000); // 60 seconds
+    await page.setDefaultTimeout(30000); // 30 seconds
+    
     await page.setViewport({ width: 1280, height: 800 });
 
-    // Login to Larson-Juhl
-    await loginToLarsonJuhl(page);
+    // Add page error handling
+    page.on('error', err => {
+      logger.error('Page error', { error: utils.formatError(err) });
+    });
+    
+    page.on('console', msg => {
+      const type = msg.type();
+      const text = msg.text();
+      
+      if (type === 'error') {
+        logger.error('Browser console error', { text });
+      } else if (type === 'warning') {
+        logger.warn('Browser console warning', { text });
+      } else {
+        logger.debug('Browser console', { type, text });
+      }
+    });
 
-    // Process each order
+    // Login to Larson-Juhl with retry
+    await utils.withRetry(
+      () => loginToLarsonJuhl(page),
+      { maxRetries: 3, initialDelay: 2000 }
+    );
+
+    // Process each order with individual error handling
+    const results = {
+      successful: [],
+      failed: []
+    };
+    
     for (const order of orders) {
-      await processOrder(page, order);
+      try {
+        await utils.withRetry(
+          () => processOrder(page, order),
+          { maxRetries: 2, initialDelay: 1000 }
+        );
+        results.successful.push(order.itemNumber);
+        monitoring?.recordOrderProcessed();
+        logger.info('Order processed successfully', { 
+          itemNumber: order.itemNumber,
+          size: order.size
+        });
+      } catch (error) {
+        results.failed.push({
+          itemNumber: order.itemNumber,
+          error: error.message
+        });
+        monitoring?.recordOrderFailed();
+        logger.error('Failed to process order', {
+          order,
+          error: utils.formatError(error)
+        });
+        
+        // Take screenshot on failure for debugging
+        try {
+          const screenshotDir = path.join(__dirname, 'screenshots');
+          if (!fs.existsSync(screenshotDir)) {
+            fs.mkdirSync(screenshotDir, { recursive: true });
+          }
+          
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const screenshotPath = path.join(
+            screenshotDir, 
+            `error-${order.itemNumber}-${timestamp}.png`
+          );
+          
+          await page.screenshot({ path: screenshotPath, fullPage: true });
+          logger.info('Error screenshot saved', { path: screenshotPath });
+        } catch (screenshotError) {
+          logger.error('Failed to save error screenshot', { 
+            error: utils.formatError(screenshotError)
+          });
+        }
+      }
     }
-
-    console.log('All orders processed successfully');
-    return true;
+    
+    if (results.failed.length > 0) {
+      logger.warn('Some orders failed to process', { 
+        successful: results.successful.length,
+        failed: results.failed.length,
+        failedItems: results.failed
+      });
+    } else {
+      logger.info('All orders processed successfully', { 
+        count: results.successful.length
+      });
+    }
+    
+    return results;
   } catch (error) {
-    console.error('Error processing orders:', error);
+    logger.error('Error in order processing batch', { error: utils.formatError(error) });
+    monitoring?.recordOrderFailed();
     throw error;
   } finally {
-    await browser.close();
+    if (browser) {
+      try {
+        await browser.close();
+        logger.debug('Browser closed successfully');
+      } catch (error) {
+        logger.error('Error closing browser', { error: utils.formatError(error) });
+      }
+    }
   }
 }
 

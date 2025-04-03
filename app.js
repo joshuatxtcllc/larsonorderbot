@@ -2,6 +2,29 @@
 const express = require('express');
 const path = require('path');
 const app = express();
+
+// Import middleware if available
+let middleware;
+try {
+  middleware = require('./src/middleware');
+} catch (error) {
+  console.warn('Middleware not available, running with reduced security:', error.message);
+  // Fallback middleware
+  middleware = {
+    validateApiKey: (req, res, next) => next(),
+    logRequests: (req, res, next) => next(),
+    errorHandler: (err, req, res, next) => {
+      console.error('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    },
+    rateLimit: (req, res, next) => next()
+  };
+}
+
+// Apply global middleware
+app.use(middleware.logRequests);
+app.use(middleware.rateLimit);
+
 // Handle potential import error
 let processOrders;
 try {
@@ -53,7 +76,10 @@ app.use(express.json());
 // Serve static files from the public directory
 app.use(express.static('public'));
 
-// Status endpoint for health checks
+// API routes - apply validation middleware
+app.use('/api', middleware.validateApiKey);
+
+// Status endpoint for health checks (public)
 app.get('/api/status', (req, res) => {
   res.status(200).json({ status: 'online' });
 });
@@ -392,14 +418,162 @@ app.post('/api/run-health-check', async (req, res) => {
   }
 });
 
+// Get system metrics
+app.get('/api/metrics', (req, res) => {
+  try {
+    // Import monitoring module
+    let monitoring;
+    try {
+      monitoring = require('./src/monitoring');
+    } catch (error) {
+      console.error('Error importing monitoring module:', error);
+      return res.status(500).json({ 
+        error: 'Monitoring system not available',
+        metrics: {
+          orderProcessed: 0,
+          ordersFailed: 0,
+          apiRequests: 0,
+          errors: 0,
+          uptime: 0,
+          responseTimeAvg: 0
+        }
+      });
+    }
+    
+    // Record this API request
+    monitoring.recordApiRequest();
+    
+    // Return metrics
+    return res.status(200).json(monitoring.getMetrics());
+  } catch (error) {
+    console.error('Error getting metrics:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// System logs endpoint (last 100 lines)
+app.get('/api/logs', (req, res) => {
+  try {
+    const { apiKey } = req.query;
+    
+    // Validate API key for sensitive operations
+    if (apiKey !== process.env.API_KEY) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    const logsDir = path.join(__dirname, 'src', 'logs');
+    if (!fs.existsSync(logsDir)) {
+      return res.status(200).json({ logs: [] });
+    }
+    
+    // Get most recent log file
+    const logFiles = fs.readdirSync(logsDir)
+      .filter(file => file.endsWith('.log'))
+      .sort()
+      .reverse();
+    
+    if (logFiles.length === 0) {
+      return res.status(200).json({ logs: [] });
+    }
+    
+    const latestLogFile = path.join(logsDir, logFiles[0]);
+    const content = fs.readFileSync(latestLogFile, 'utf8');
+    const lines = content.split('\n').filter(Boolean);
+    
+    // Return last 100 lines
+    const logs = lines.slice(-100).map(line => {
+      try {
+        return JSON.parse(line);
+      } catch (e) {
+        return { raw: line };
+      }
+    });
+    
+    return res.status(200).json({ logs });
+  } catch (error) {
+    console.error('Error getting logs:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Serve index.html for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Global error handler
+app.use(middleware.errorHandler);
+
+// Create orders cleanup job (run every day at midnight)
+const cleanupOldOrders = () => {
+  try {
+    console.log('Running order cleanup job');
+    const MAX_AGE_DAYS = 30; // Keep orders for 30 days
+    const now = Date.now();
+    const maxAge = MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+    
+    const files = fs.readdirSync(ordersDir);
+    let cleanedCount = 0;
+    
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      
+      const orderPath = path.join(ordersDir, file);
+      const stats = fs.statSync(orderPath);
+      
+      // If file is older than MAX_AGE_DAYS
+      if (now - stats.mtime.getTime() > maxAge) {
+        // Get order status before deleting
+        try {
+          const orderData = JSON.parse(fs.readFileSync(orderPath, 'utf8'));
+          // Don't delete orders that aren't completed or failed
+          if (orderData.status !== 'completed' && orderData.status !== 'failed') {
+            continue;
+          }
+        } catch (err) {
+          console.warn(`Error reading order ${file} before cleanup:`, err);
+          // If we can't read it, assume it's safe to delete
+        }
+        
+        fs.unlinkSync(orderPath);
+        cleanedCount++;
+      }
+    }
+    
+    console.log(`Cleaned up ${cleanedCount} old orders`);
+  } catch (error) {
+    console.error('Error cleaning up old orders:', error);
+  }
+};
+
+// Schedule the cleanup job (every day at midnight)
+const scheduleCleanup = () => {
+  const now = new Date();
+  const night = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1, // tomorrow
+    0, 0, 0 // midnight
+  );
+  
+  const timeToMidnight = night.getTime() - now.getTime();
+  
+  setTimeout(() => {
+    cleanupOldOrders();
+    // Schedule next run (every 24 hours)
+    setInterval(cleanupOldOrders, 24 * 60 * 60 * 1000);
+  }, timeToMidnight);
+  
+  console.log(`Order cleanup scheduled, first run in ${Math.round(timeToMidnight / 1000 / 60)} minutes`);
+};
+
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Dashboard available at http://0.0.0.0:${PORT}`);
   console.log(`Server is ready and listening for connections!`);
+  
+  // Schedule cleanup job
+  scheduleCleanup();
 });

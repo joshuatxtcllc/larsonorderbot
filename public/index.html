@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,17 +53,22 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> Dashboard</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/orders.html"><i class="fas fa-clipboard-list me-1"></i> My Orders</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/pos-approval.html"><i class="fas fa-check-circle me-1"></i> POS Approvals</a>
-          </li>
-        </ul>
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link active" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/orders.html">Orders</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/pos-approval.html">POS Approval</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/monitoring.html">
+                <i class="fas fa-chart-line"></i> Monitoring
+              </a>
+            </li>
+          </ul>
       </div>
     </div>
   </nav>
@@ -199,13 +203,13 @@
                   </button>
                 </div>
               </div>
-              
+
               <div class="mb-3">
                 <button type="button" id="addOrderBtn" class="btn btn-outline-primary">
                   <i class="fas fa-plus me-1"></i> Add Another Frame
                 </button>
               </div>
-              
+
               <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <button type="reset" class="btn btn-outline-secondary me-md-2">
                   <i class="fas fa-undo me-1"></i> Reset
@@ -287,7 +291,7 @@
       var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
       });
-      
+
       // Run health check button
       const healthCheckBtn = document.getElementById('run-health-check');
       if (healthCheckBtn) {
@@ -295,7 +299,7 @@
           // Disable button and show loading state
           healthCheckBtn.disabled = true;
           healthCheckBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Running...';
-          
+
           fetch('/api/run-health-check', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
@@ -304,7 +308,7 @@
               const resultMsg = data.success ? 
                 'All systems operational' : 
                 'Issues detected: ' + (data.details || 'Check the logs for more information');
-              
+
               // Create alert to show the result
               const alertDiv = document.createElement('div');
               alertDiv.className = `alert alert-${data.success ? 'success' : 'warning'} alert-dismissible fade show mt-3`;
@@ -312,7 +316,7 @@
                 <strong><i class="fas fa-${data.success ? 'check-circle' : 'exclamation-triangle'} me-2"></i>Health Check Result:</strong> ${resultMsg}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
               `;
-              
+
               // Insert the alert before the card
               const statusCard = document.querySelector('.card:has(#api-status)');
               if (statusCard && statusCard.parentNode) {
@@ -320,7 +324,7 @@
               } else {
                 document.querySelector('.container').prepend(alertDiv);
               }
-              
+
               // Reset button
               healthCheckBtn.disabled = false;
               healthCheckBtn.innerHTML = '<i class="fas fa-heartbeat me-1"></i> Run Health Check';
@@ -334,7 +338,7 @@
             });
         });
       }
-      
+
       // Load order statistics
       function loadOrderStats() {
         fetch('/api/orders')
@@ -343,7 +347,7 @@
             const completed = orders.filter(o => o.status === 'completed').length;
             const pending = orders.filter(o => o.status === 'pending').length;
             const failed = orders.filter(o => o.status === 'failed').length;
-            
+
             const overview = document.getElementById('orders-overview');
             if (overview) {
               overview.innerHTML = `
@@ -372,7 +376,7 @@
             }
           });
       }
-      
+
       loadOrderStats();
       setInterval(loadOrderStats, 30000);
     });

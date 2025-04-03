@@ -1,0 +1,392 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Monitoring - Frame Order Automation</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    .metric-card {
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .metric-card:hover {
+      transform: translateY(-5px);
+    }
+    .metric-value {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+    .bg-gradient-success {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: white;
+    }
+    .bg-gradient-danger {
+      background: linear-gradient(45deg, #dc3545, #fd7e14);
+      color: white;
+    }
+    .bg-gradient-info {
+      background: linear-gradient(45deg, #17a2b8, #0dcaf0);
+      color: white;
+    }
+    .bg-gradient-primary {
+      background: linear-gradient(45deg, #007bff, #6610f2);
+      color: white;
+    }
+    .health-indicator {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    .health-good {
+      background-color: #28a745;
+    }
+    .health-warn {
+      background-color: #ffc107;
+    }
+    .health-bad {
+      background-color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4 rounded">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+          <i class="fas fa-frame me-2"></i>
+          Frame Order Automation
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/orders.html">Orders</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/pos-approval.html">POS Approval</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" href="/monitoring.html">Monitoring</a>
+            </li>
+          </ul>
+        </div>
+        <div class="d-flex">
+          <div class="me-3">
+            <span class="text-white">System Status:</span>
+            <span id="systemStatus" class="badge bg-success">online</span>
+          </div>
+          <button id="refreshBtn" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      </div>
+    </nav>
+    
+    <div class="row">
+      <div class="col-12 mb-4">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">System Health</h5>
+            <div>
+              <span id="lastUpdated" class="text-muted small"></span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info" id="systemAlerts">
+              <i class="fas fa-info-circle me-2"></i>
+              System is operating normally
+            </div>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <div class="card metric-card bg-gradient-success">
+                  <div class="card-body text-center">
+                    <h6 class="card-title">Orders Processed</h6>
+                    <div class="metric-value" id="ordersProcessed">--</div>
+                    <div class="small">total orders</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="card metric-card bg-gradient-danger">
+                  <div class="card-body text-center">
+                    <h6 class="card-title">Failed Orders</h6>
+                    <div class="metric-value" id="ordersFailed">--</div>
+                    <div class="small">failure count</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="card metric-card bg-gradient-info">
+                  <div class="card-body text-center">
+                    <h6 class="card-title">API Requests</h6>
+                    <div class="metric-value" id="apiRequests">--</div>
+                    <div class="small">total requests</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="card metric-card bg-gradient-primary">
+                  <div class="card-body text-center">
+                    <h6 class="card-title">Response Time</h6>
+                    <div class="metric-value" id="responseTime">--</div>
+                    <div class="small">average ms</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-header">
+            <h5 class="mb-0">System Components</h5>
+          </div>
+          <div class="card-body">
+            <table class="table">
+              <tbody>
+                <tr>
+                  <td><strong>API Server</strong></td>
+                  <td><span class="health-indicator health-good" id="apiHealth"></span> <span id="apiStatus">Operational</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Order Processing</strong></td>
+                  <td><span class="health-indicator health-good" id="processingHealth"></span> <span id="processingStatus">Operational</span></td>
+                </tr>
+                <tr>
+                  <td><strong>POS Integration</strong></td>
+                  <td><span class="health-indicator health-good" id="posHealth"></span> <span id="posStatus">Operational</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Scheduled Jobs</strong></td>
+                  <td><span class="health-indicator health-good" id="schedulerHealth"></span> <span id="schedulerStatus">Operational</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Last Health Check</h5>
+            <button id="runHealthCheck" class="btn btn-sm btn-primary">
+              <i class="fas fa-stethoscope"></i> Run Health Check
+            </button>
+          </div>
+          <div class="card-body">
+            <div id="healthCheckResults">
+              <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading health check results...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-12 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">System Uptime</h5>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-4 text-center">
+                <h2 id="uptimeValue">--:--:--</h2>
+                <p class="text-muted mb-0">Hours:Minutes:Seconds</p>
+              </div>
+              <div class="col-md-8">
+                <div class="progress" style="height: 30px;">
+                  <div id="uptimeBar" class="progress-bar bg-success" role="progressbar" style="width: 100%">
+                    100% Uptime
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize
+      fetchMetrics();
+      
+      // Refresh button
+      document.getElementById('refreshBtn').addEventListener('click', fetchMetrics);
+      
+      // Run health check button
+      document.getElementById('runHealthCheck').addEventListener('click', runHealthCheck);
+      
+      // Update uptime every second
+      setInterval(updateUptime, 1000);
+      
+      // Fetch metrics every 30 seconds
+      setInterval(fetchMetrics, 30000);
+      
+      // Fetch metrics from API
+      async function fetchMetrics() {
+        try {
+          const response = await fetch('/api/metrics');
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const metrics = await response.json();
+          updateMetricsDisplay(metrics);
+          
+          // Update last updated time
+          document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        } catch (error) {
+          console.error('Error fetching metrics:', error);
+          document.getElementById('systemAlerts').className = 'alert alert-warning';
+          document.getElementById('systemAlerts').innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Error fetching system metrics: ${error.message}
+          `;
+        }
+      }
+      
+      // Update metrics display
+      function updateMetricsDisplay(metrics) {
+        // Update metric cards
+        document.getElementById('ordersProcessed').textContent = metrics.orderProcessed;
+        document.getElementById('ordersFailed').textContent = metrics.ordersFailed;
+        document.getElementById('apiRequests').textContent = metrics.apiRequests;
+        document.getElementById('responseTime').textContent = Math.round(metrics.responseTimeAvg);
+        
+        // Update system status
+        const systemStatus = document.getElementById('systemStatus');
+        if (metrics.errors > 0) {
+          systemStatus.className = 'badge bg-warning';
+          systemStatus.textContent = 'warning';
+        } else {
+          systemStatus.className = 'badge bg-success';
+          systemStatus.textContent = 'online';
+        }
+        
+        // Update system alerts
+        const systemAlerts = document.getElementById('systemAlerts');
+        if (metrics.errors > 5) {
+          systemAlerts.className = 'alert alert-danger';
+          systemAlerts.innerHTML = `
+            <i class="fas fa-exclamation-circle me-2"></i>
+            System is experiencing issues. ${metrics.errors} errors detected.
+          `;
+        } else if (metrics.errors > 0) {
+          systemAlerts.className = 'alert alert-warning';
+          systemAlerts.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            System is operating with minor issues. ${metrics.errors} errors detected.
+          `;
+        } else {
+          systemAlerts.className = 'alert alert-info';
+          systemAlerts.innerHTML = `
+            <i class="fas fa-info-circle me-2"></i>
+            System is operating normally
+          `;
+        }
+        
+        // Store uptime for the counter
+        window.systemUptime = metrics.uptime;
+      }
+      
+      // Run health check
+      async function runHealthCheck() {
+        const healthCheckResults = document.getElementById('healthCheckResults');
+        healthCheckResults.innerHTML = `
+          <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Running health check...</p>
+          </div>
+        `;
+        
+        try {
+          const apiKey = localStorage.getItem('apiKey') || '';
+          const response = await fetch('/api/run-health-check', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ apiKey })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            healthCheckResults.innerHTML = `
+              <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                Health check passed
+              </div>
+              <pre class="bg-light p-3 rounded small" style="max-height: 200px; overflow-y: auto;">${result.details}</pre>
+            `;
+          } else {
+            healthCheckResults.innerHTML = `
+              <div class="alert alert-danger">
+                <i class="fas fa-times-circle me-2"></i>
+                Health check failed
+              </div>
+              <pre class="bg-light p-3 rounded small" style="max-height: 200px; overflow-y: auto;">${result.details || 'No details available'}</pre>
+            `;
+          }
+        } catch (error) {
+          console.error('Error running health check:', error);
+          healthCheckResults.innerHTML = `
+            <div class="alert alert-danger">
+              <i class="fas fa-times-circle me-2"></i>
+              Error running health check: ${error.message}
+            </div>
+          `;
+        }
+      }
+      
+      // Format uptime
+      function formatUptime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        return [
+          hours.toString().padStart(2, '0'),
+          minutes.toString().padStart(2, '0'),
+          secs.toString().padStart(2, '0')
+        ].join(':');
+      }
+      
+      // Update uptime display
+      function updateUptime() {
+        if (window.systemUptime !== undefined) {
+          window.systemUptime++;
+          document.getElementById('uptimeValue').textContent = formatUptime(window.systemUptime);
+        }
+      }
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
