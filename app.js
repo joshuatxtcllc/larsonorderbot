@@ -81,6 +81,7 @@ app.use('/api', middleware.validateApiKey);
 
 // Status endpoint for health checks (public)
 app.get('/api/status', (req, res) => {
+  // Explicitly mark this endpoint as public by not requiring API key
   res.status(200).json({ status: 'online' });
 });
 

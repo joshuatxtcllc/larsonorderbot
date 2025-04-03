@@ -11,9 +11,15 @@ function validateApiKey(req, res, next) {
     return next();
   }
   
+  // Allow OPTIONS requests for CORS preflight
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+  
   const apiKey = req.headers['x-api-key'] || req.query.apiKey || (req.body && req.body.apiKey);
   
   if (!apiKey || apiKey !== process.env.API_KEY) {
+    console.log(`API key validation failed for ${req.path}`);
     return res.status(401).json({ error: 'Invalid or missing API key' });
   }
   
