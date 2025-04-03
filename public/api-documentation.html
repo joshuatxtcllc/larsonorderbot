@@ -1,0 +1,375 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frame Order API Documentation</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css">
+  <style>
+    pre {
+      background-color: #f8f9fa;
+      border-radius: 5px;
+      padding: 15px;
+    }
+    .endpoint {
+      border-left: 5px solid #0d6efd;
+      padding-left: 15px;
+      margin-bottom: 30px;
+    }
+    .method {
+      font-weight: bold;
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 5px;
+      margin-right: 10px;
+    }
+    .method.get {
+      background-color: #0d6efd;
+      color: white;
+    }
+    .method.post {
+      background-color: #198754;
+      color: white;
+    }
+    .nav-pills .nav-link.active {
+      background-color: #0d6efd;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/"><i class="fas fa-layer-group me-2"></i>Frame Order System</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/orders.html">Orders</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/pos-approval.html">POS Approval</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/monitoring.html">Monitoring</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/api-documentation.html">API Docs</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4 mb-5">
+    <div class="row">
+      <div class="col-md-3">
+        <div class="sticky-top pt-3">
+          <h5>Contents</h5>
+          <nav class="nav flex-column nav-pills">
+            <a class="nav-link active" href="#introduction">Introduction</a>
+            <a class="nav-link" href="#authentication">Authentication</a>
+            <a class="nav-link" href="#pos-integration">POS Integration</a>
+            <a class="nav-link" href="#order-management">Order Management</a>
+            <a class="nav-link" href="#system-endpoints">System Endpoints</a>
+            <a class="nav-link" href="#integration-examples">Integration Examples</a>
+          </nav>
+        </div>
+      </div>
+      <div class="col-md-9">
+        <h1 class="mb-4"><i class="fas fa-book me-2"></i>Frame Order API Documentation</h1>
+        
+        <section id="introduction" class="mb-5">
+          <h2>Introduction</h2>
+          <p class="lead">
+            This API allows you to integrate your Point of Sale (POS) system with our frame ordering automation. 
+            It enables automatic ordering of materials from Larson-Juhl with your approval.
+          </p>
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>All API requests must include a valid API key for authentication.
+          </div>
+        </section>
+        
+        <section id="authentication" class="mb-5">
+          <h2>Authentication</h2>
+          <p>
+            All API requests require an API key for authentication. You can include the API key in one of three ways:
+          </p>
+          <ul>
+            <li>As a header: <code>x-api-key: your_api_key</code></li>
+            <li>As a query parameter: <code>?apiKey=your_api_key</code></li>
+            <li>In the request body: <code>{"apiKey": "your_api_key"}</code></li>
+          </ul>
+          <p>Your API key is: <code>frame_order_api_key_2025</code></p>
+        </section>
+        
+        <section id="pos-integration" class="mb-5">
+          <h2>POS Integration Endpoints</h2>
+          
+          <div class="endpoint">
+            <h4><span class="method post">POST</span> /api/pos/orders</h4>
+            <p>Submit a new order from your POS system. This will create a new order that requires approval before processing.</p>
+            
+            <h5>Request Body:</h5>
+            <pre><code class="language-json">{
+  "apiKey": "your_api_key",
+  "orderData": {
+    "customerName": "John Doe",
+    "posOrderId": "POS123456",
+    "items": [
+      {
+        "itemNumber": "562810",
+        "width": 16,
+        "height": 20,
+        "preparedness": "join",
+        "quantity": 1,
+        "customerInfo": "Customer special instructions",
+        "dueDate": "2025-05-15",
+        "notes": "Black frame for living room"
+      }
+    ]
+  }
+}</code></pre>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">{
+  "message": "POS order received and pick-list created",
+  "orderId": "pos-1712178742123-456",
+  "pickList": [
+    {
+      "itemNumber": "562810",
+      "size": {
+        "width": 16,
+        "height": 20
+      },
+      "preparedness": "join",
+      "quantity": 1,
+      "customerInfo": "Customer special instructions",
+      "dueDate": "2025-05-15",
+      "notes": "Black frame for living room"
+    }
+  ],
+  "status": "awaiting_approval"
+}</code></pre>
+          </div>
+          
+          <div class="endpoint">
+            <h4><span class="method post">POST</span> /api/pos/orders/{orderId}/approve</h4>
+            <p>Approve an order for scheduled processing. Approved orders will be automatically processed on the next scheduled run.</p>
+            
+            <h5>Request Body:</h5>
+            <pre><code class="language-json">{
+  "apiKey": "your_api_key"
+}</code></pre>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">{
+  "message": "Order approved for scheduled processing",
+  "orderId": "pos-1712178742123-456",
+  "status": "approved_for_schedule"
+}</code></pre>
+          </div>
+          
+          <div class="endpoint">
+            <h4><span class="method post">POST</span> /api/pos/orders/{orderId}/reject</h4>
+            <p>Reject an order to prevent it from being processed.</p>
+            
+            <h5>Request Body:</h5>
+            <pre><code class="language-json">{
+  "apiKey": "your_api_key",
+  "reason": "Insufficient inventory"
+}</code></pre>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">{
+  "message": "Order rejected",
+  "orderId": "pos-1712178742123-456",
+  "status": "rejected"
+}</code></pre>
+          </div>
+          
+          <div class="endpoint">
+            <h4><span class="method get">GET</span> /api/pos/pending-approvals</h4>
+            <p>Get a list of all pending orders that need approval.</p>
+            
+            <h5>Query Parameters:</h5>
+            <ul>
+              <li><code>apiKey</code> (required): Your API key</li>
+            </ul>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">[
+  {
+    "id": "pos-1712178742123-456",
+    "timestamp": "2025-04-03T02:45:27.589Z",
+    "source": "POS",
+    "status": "awaiting_approval",
+    "scheduled": true,
+    "customerName": "John Doe",
+    "posOrderId": "POS123456",
+    "items": [...]
+  }
+]</code></pre>
+          </div>
+        </section>
+        
+        <section id="order-management" class="mb-5">
+          <h2>Order Management Endpoints</h2>
+          
+          <div class="endpoint">
+            <h4><span class="method get">GET</span> /api/orders</h4>
+            <p>List all orders in the system with optional status filtering.</p>
+            
+            <h5>Query Parameters:</h5>
+            <ul>
+              <li><code>apiKey</code> (required): Your API key</li>
+              <li><code>status</code> (optional): Filter orders by status</li>
+            </ul>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">[
+  {
+    "id": "5834e644736f561d",
+    "timestamp": "2025-04-03T02:45:27.589Z",
+    "status": "completed",
+    "itemCount": 3
+  }
+]</code></pre>
+          </div>
+          
+          <div class="endpoint">
+            <h4><span class="method get">GET</span> /api/order-status/{orderId}</h4>
+            <p>Check the status of a specific order.</p>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">{
+  "id": "5834e644736f561d",
+  "timestamp": "2025-04-03T02:45:27.589Z",
+  "status": "completed",
+  "error": null
+}</code></pre>
+          </div>
+          
+          <div class="endpoint">
+            <h4><span class="method post">POST</span> /api/run-scheduled-processing</h4>
+            <p>Manually trigger the scheduled order processing to submit orders to Larson-Juhl.</p>
+            
+            <h5>Request Body:</h5>
+            <pre><code class="language-json">{
+  "apiKey": "your_api_key"
+}</code></pre>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">{
+  "message": "Scheduled processing started",
+  "timestamp": "2025-04-03T02:45:27.589Z"
+}</code></pre>
+          </div>
+        </section>
+        
+        <section id="system-endpoints" class="mb-5">
+          <h2>System Endpoints</h2>
+          
+          <div class="endpoint">
+            <h4><span class="method get">GET</span> /api/status</h4>
+            <p>Check if the API service is online.</p>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">{
+  "status": "online"
+}</code></pre>
+          </div>
+          
+          <div class="endpoint">
+            <h4><span class="method get">GET</span> /api/metrics</h4>
+            <p>Get system metrics and statistics.</p>
+            
+            <h5>Response:</h5>
+            <pre><code class="language-json">{
+  "ordersProcessed": 10,
+  "ordersFailed": 0,
+  "apiRequests": 156,
+  "errors": 2,
+  "uptime": 86400,
+  "responseTimeAvg": 245
+}</code></pre>
+          </div>
+        </section>
+        
+        <section id="integration-examples" class="mb-5">
+          <h2>Integration Examples</h2>
+          
+          <h4>Zapier Integration</h4>
+          <p>To integrate with Zapier:</p>
+          <ol>
+            <li>Create a new Zap with your POS system as the trigger</li>
+            <li>For the action, choose "Webhooks by Zapier" and select "POST"</li>
+            <li>Use your API URL: <code>https://your-replit-app.repl.co/api/pos/orders</code></li>
+            <li>Format the data according to the API specification above</li>
+          </ol>
+          
+          <h4>API Testing with cURL</h4>
+          <pre><code class="language-bash"># Submit a POS order
+curl -X POST https://your-replit-app.repl.co/api/pos/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiKey": "frame_order_api_key_2025",
+    "orderData": {
+      "customerName": "Test Customer",
+      "posOrderId": "TEST123",
+      "items": [
+        {
+          "itemNumber": "562810",
+          "width": 16,
+          "height": 20,
+          "preparedness": "join",
+          "quantity": 1
+        }
+      ]
+    }
+  }'</code></pre>
+          
+          <h4>JavaScript Fetch Example</h4>
+          <pre><code class="language-javascript">// Submit a POS order
+fetch('https://your-replit-app.repl.co/api/pos/orders', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'frame_order_api_key_2025'
+  },
+  body: JSON.stringify({
+    orderData: {
+      customerName: 'Test Customer',
+      posOrderId: 'TEST123',
+      items: [
+        {
+          itemNumber: '562810',
+          width: 16,
+          height: 20,
+          preparedness: 'join',
+          quantity: 1
+        }
+      ]
+    }
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));</code></pre>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-core.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>
