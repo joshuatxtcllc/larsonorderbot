@@ -1,0 +1,17 @@
+{
+  "id": "5834e644736f561d",
+  "timestamp": "2025-04-03T03:12:00.897Z",
+  "orders": [
+    {
+      "itemNumber": "TEST123",
+      "size": {
+        "width": 10,
+        "height": 12
+      },
+      "preparedness": "join",
+      "quantity": 1
+    }
+  ],
+  "status": "failed",
+  "error": "Failed to launch browser: Could not find Chrome (ver. 121.0.6167.85). This can occur if either\n 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or\n 2. your cache path is incorrectly configured (which is: /home/runner/.cache/puppeteer).\nFor (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration."
+}
