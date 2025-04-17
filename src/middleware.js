@@ -8,7 +8,7 @@ function validateApiKey(req, res, next) {
   const publicRoutes = ['/api/status', '/api/metrics', '/status'];
   const publicPathPrefixes = ['/api/orders'];
 
-  // Check if route is public
+  // Check if route is public - use either exact match or prefix
   const isPublic = publicRoutes.includes(req.path) || 
                   publicPathPrefixes.some(prefix => req.path.startsWith(prefix));
 
@@ -36,6 +36,18 @@ function validateApiKey(req, res, next) {
 function logRequests(req, res, next) {
   const start = Date.now();
   const { method, path, ip } = req;
+
+  // Add CORS headers for API routes
+  if (path.startsWith('/api')) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-API-Key');
+    
+    // Handle preflight requests
+    if (method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+  }
 
   // Record API request in monitoring
   recordApiRequest();

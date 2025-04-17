@@ -347,9 +347,14 @@
 
       // Load order statistics
       function loadOrderStats() {
+        console.log('Loading orders...');
         fetch('/api/orders')
           .then(response => {
             if (!response.ok) {
+              // If unauthorized, don't throw error - default to empty array and show 0 stats
+              if (response.status === 401) {
+                return [];
+              }
               throw new Error(`HTTP error! Status: ${response.status}`);
             }
             return response.json();
@@ -383,7 +388,18 @@
             console.error('Error loading order stats:', error);
             const overview = document.getElementById('orders-overview');
             if (overview) {
-              overview.innerHTML = `<p class="text-danger">Error loading order statistics</p>`;
+              // Provide more user-friendly error message
+              overview.innerHTML = `
+                <div class="alert alert-warning">
+                  <i class="fas fa-exclamation-triangle me-2"></i>
+                  <span>Could not load order statistics. You may need to be logged in.</span>
+                  <div class="mt-2">
+                    <button onclick="loadOrderStats()" class="btn btn-sm btn-outline-secondary">
+                      <i class="fas fa-sync-alt me-1"></i> Retry
+                    </button>
+                  </div>
+                </div>
+              `;
             }
           });
       }

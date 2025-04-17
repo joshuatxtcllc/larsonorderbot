@@ -28,13 +28,35 @@ document.addEventListener('DOMContentLoaded', function() {
         systemStatusElement.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>System is online and operational</div>';
       }
 
+      // Update orders directory status if element exists
+      const ordersDirElement = document.getElementById('orders-dir-status');
+      if (ordersDirElement) {
+        ordersDirElement.innerText = 'Available';
+        ordersDirElement.className = 'text-success';
+      }
+
       console.log('API status: Online');
     } catch (error) {
+      console.error('Error checking status:', error);
+      
       // Update API status indicator
       const apiStatusElement = document.getElementById('api-status');
       if (apiStatusElement) {
         apiStatusElement.innerText = 'offline';
         apiStatusElement.className = 'text-danger';
+      }
+      
+      // Update system status banner
+      const systemStatusElement = document.getElementById('system-status');
+      if (systemStatusElement) {
+        systemStatusElement.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>System is currently offline. Please try again later.</div>';
+      }
+      
+      // Update orders directory status if element exists
+      const ordersDirElement = document.getElementById('orders-dir-status');
+      if (ordersDirElement) {
+        ordersDirElement.innerText = 'Unknown';
+        ordersDirElement.className = 'text-warning';
       }
 
       // Update system status banner

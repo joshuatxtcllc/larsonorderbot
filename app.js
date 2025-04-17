@@ -578,14 +578,29 @@ const scheduleCleanup = () => {
   console.log(`Order cleanup scheduled, first run in ${Math.round(timeToMidnight / 1000 / 60)} minutes`);
 };
 
-// Create orders directory if it doesn't exist
+// Create necessary directories at startup
 try {
+  // Create orders directory
   if (!fs.existsSync(ordersDir)) {
     console.log(`Creating orders directory at ${ordersDir}`);
     fs.mkdirSync(ordersDir, { recursive: true });
   }
+  
+  // Create logs directory if it doesn't exist
+  const logsDir = path.join(__dirname, 'src', 'logs');
+  if (!fs.existsSync(logsDir)) {
+    console.log(`Creating logs directory at ${logsDir}`);
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
+  
+  // Create metrics directory if it doesn't exist
+  const metricsDir = path.join(__dirname, 'src', 'metrics');
+  if (!fs.existsSync(metricsDir)) {
+    console.log(`Creating metrics directory at ${metricsDir}`);
+    fs.mkdirSync(metricsDir, { recursive: true });
+  }
 } catch (error) {
-  console.error('Error creating orders directory:', error);
+  console.error('Error creating directories:', error);
 }
 
 // Start the server
