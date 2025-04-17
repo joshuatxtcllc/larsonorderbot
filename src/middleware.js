@@ -5,9 +5,15 @@ const { recordApiRequest, trackResponseTime } = require('./monitoring');
 // API Key validation middleware
 function validateApiKey(req, res, next) {
   // Skip validation for certain routes
-  const publicRoutes = ['/api/status', '/api/metrics', '/status', '/api/orders'];
-  console.log(`Checking route: ${req.path}, public: ${publicRoutes.includes(req.path)}`);
-  if (publicRoutes.includes(req.path)) {
+  const publicRoutes = ['/api/status', '/api/metrics', '/status'];
+  const publicPathPrefixes = ['/api/orders'];
+
+  // Check if route is public
+  const isPublic = publicRoutes.includes(req.path) || 
+                  publicPathPrefixes.some(prefix => req.path.startsWith(prefix));
+
+  console.log(`Checking route: ${req.path}, public: ${isPublic}`);
+  if (isPublic) {
     return next();
   }
 

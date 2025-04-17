@@ -578,13 +578,34 @@ const scheduleCleanup = () => {
   console.log(`Order cleanup scheduled, first run in ${Math.round(timeToMidnight / 1000 / 60)} minutes`);
 };
 
+// Create orders directory if it doesn't exist
+try {
+  if (!fs.existsSync(ordersDir)) {
+    console.log(`Creating orders directory at ${ordersDir}`);
+    fs.mkdirSync(ordersDir, { recursive: true });
+  }
+} catch (error) {
+  console.error('Error creating orders directory:', error);
+}
+
 // Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Dashboard available at http://0.0.0.0:${PORT}`);
   console.log(`Server is ready and listening for connections!`);
   
   // Schedule cleanup job
   scheduleCleanup();
+}).on('error', (err) => {
+  console.error('Failed to start server:', err);
+});
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
