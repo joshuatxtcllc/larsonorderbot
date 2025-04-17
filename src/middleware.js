@@ -7,7 +7,8 @@ const { recordApiRequest, trackResponseTime } = require('./monitoring');
 function validateApiKey(req, res, next) {
   // Skip validation for certain routes
   const publicRoutes = ['/api/status', '/api/metrics'];
-  if (publicRoutes.includes(req.path)) {
+  if (publicRoutes.includes(req.path) || req.path === '/status') {
+    console.log(`Public route accessed: ${req.path}`);
     return next();
   }
   
