@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "node app.js"]
 
 [workflows]
-runButton = "Fix API Authentication"
+runButton = "Restart Application"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -133,6 +133,15 @@ args = "node test-pos-integration.js"
 
 [[workflows.workflow]]
 name = "Fix API Authentication"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node app.js"
+
+[[workflows.workflow]]
+name = "Restart Application"
 author = 27546771
 mode = "sequential"
 
