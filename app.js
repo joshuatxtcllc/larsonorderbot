@@ -90,6 +90,11 @@ app.get('/status', (req, res) => {
   res.status(200).json({ status: 'online' });
 });
 
+// Additional public status endpoint
+app.get('/status', (req, res) => {
+  res.status(200).json({ status: 'online' });
+});
+
 // List all orders (with optional status filter)
 app.get('/api/orders', (req, res) => {
   try {
