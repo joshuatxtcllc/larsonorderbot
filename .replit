@@ -122,6 +122,15 @@ mode = "sequential"
 task = "shell.exec"
 args = "node app.js"
 
+[[workflows.workflow]]
+name = "Test POS Integration"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node test-pos-integration.js"
+
 [[ports]]
 localPort = 3000
 externalPort = 80

@@ -1,0 +1,11 @@
+{
+  "orderProcessed": 0,
+  "ordersFailed": 0,
+  "ordersRetried": 0,
+  "apiRequests": 374,
+  "errors": 0,
+  "lastHealthCheck": null,
+  "uptime": 7200,
+  "responseTimeAvg": 0.7967914438502672,
+  "responseTimeSamples": 374
+}
