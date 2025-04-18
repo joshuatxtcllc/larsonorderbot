@@ -85,6 +85,82 @@ app.get('/api/status', (req, res) => {
   res.status(200).json({ status: 'online' });
 });
 
+// Cart management endpoints
+// Get active cart waiting for approval
+app.get('/api/active-cart', (req, res) => {
+  try {
+    const files = fs.readdirSync(ordersDir);
+    const activeCart = files
+      .filter(file => file.endsWith('.json'))
+      .map(file => {
+        const orderData = JSON.parse(fs.readFileSync(path.join(ordersDir, file), 'utf8'));
+        return orderData;
+      })
+      .find(order => order.status === 'ready_for_approval');
+    
+    if (!activeCart) {
+      return res.status(404).json({ message: 'No active cart found' });
+    }
+    
+    return res.status(200).json(activeCart);
+  } catch (error) {
+    console.error('Error getting active cart:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get cart history
+app.get('/api/cart-history', (req, res) => {
+  try {
+    const files = fs.readdirSync(ordersDir);
+    const cartHistory = files
+      .filter(file => file.endsWith('.json'))
+      .map(file => {
+        const orderData = JSON.parse(fs.readFileSync(path.join(ordersDir, file), 'utf8'));
+        return orderData;
+      })
+      .filter(order => ['completed', 'ready_for_approval', 'cancelled'].includes(order.status))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    return res.status(200).json(cartHistory);
+  } catch (error) {
+    console.error('Error getting cart history:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Cancel active cart
+app.post('/api/cancel-cart/:orderId', (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const orderPath = path.join(ordersDir, `${orderId}.json`);
+    
+    if (!fs.existsSync(orderPath)) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const orderData = JSON.parse(fs.readFileSync(orderPath, 'utf8'));
+    
+    if (orderData.status !== 'ready_for_approval') {
+      return res.status(400).json({ error: 'Only orders awaiting approval can be cancelled' });
+    }
+    
+    // Update status
+    orderData.status = 'cancelled';
+    orderData.cancelledAt = new Date().toISOString();
+    
+    fs.writeFileSync(orderPath, JSON.stringify(orderData, null, 2));
+    
+    return res.status(200).json({
+      message: 'Order cancelled successfully',
+      orderId
+    });
+  } catch (error) {
+    console.error('Error cancelling order:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Additional public status endpoint
 app.get('/status', (req, res) => {
   res.status(200).json({ status: 'online' });

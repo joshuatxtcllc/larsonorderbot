@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "node app.js"]
 
 [workflows]
-runButton = "Production"
+runButton = "Production Ready"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -151,6 +151,15 @@ args = "node app.js"
 
 [[workflows.workflow]]
 name = "Production"
+author = 27546771
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node app.js"
+
+[[workflows.workflow]]
+name = "Production Ready"
 author = 27546771
 mode = "sequential"
 

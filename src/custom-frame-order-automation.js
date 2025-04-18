@@ -256,8 +256,27 @@ async function processOrder(page, order) {
       console.log('Error clicking checkout button or not required:', error);
     }
 
-    // For demonstration purposes, we'll stop before placing the actual order
-    console.log('Order ready for final review and checkout - automation paused before final submission');
+    // Take screenshot of the cart for approval
+    console.log('Capturing cart preview for approval...');
+    const screenshotDir = path.join(__dirname, '..', 'public', 'cart-previews');
+    if (!fs.existsSync(screenshotDir)) {
+      fs.mkdirSync(screenshotDir, { recursive: true });
+    }
+    
+    const cartPreviewPath = path.join(screenshotDir, `cart-${Date.now()}.png`);
+    await page.screenshot({ path: cartPreviewPath, fullPage: true });
+    
+    // Store the cart URL for one-click ordering
+    const cartUrl = page.url();
+    
+    console.log('Order ready for final review and checkout - paused before final submission');
+    console.log('Cart preview saved at:', cartPreviewPath);
+    
+    return {
+      status: 'ready_for_approval',
+      cartUrl: cartUrl,
+      cartPreviewPath: cartPreviewPath
+    };
   } catch (error) {
     console.error('Error processing order:', error);
     throw error;

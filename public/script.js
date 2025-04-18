@@ -38,20 +38,20 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('API status: Online');
     } catch (error) {
       console.error('Error checking status:', error);
-      
+
       // Update API status indicator
       const apiStatusElement = document.getElementById('api-status');
       if (apiStatusElement) {
         apiStatusElement.innerText = 'offline';
         apiStatusElement.className = 'text-danger';
       }
-      
+
       // Update system status banner
       const systemStatusElement = document.getElementById('system-status');
       if (systemStatusElement) {
         systemStatusElement.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>System is currently offline. Please try again later.</div>';
       }
-      
+
       // Update orders directory status if element exists
       const ordersDirElement = document.getElementById('orders-dir-status');
       if (ordersDirElement) {
@@ -468,3 +468,23 @@ setInterval(() => {
   loadOrders();
 }, 30000);
 });
+
+// Order submission handler
+function submitOrder(event) {
+  event.preventDefault();
+
+  // Get API key
+  const apiKey = document.getElementById('apiKey').value;
+
+  if (!apiKey) {
+    showNotification('Please enter your API key', 'error');
+    return;
+  }
+
+  // Show loading indicator
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+  // Get order items from form
+  const orderItems = [];
+}

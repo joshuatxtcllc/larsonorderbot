@@ -4,16 +4,22 @@ const { recordApiRequest, trackResponseTime } = require('./monitoring');
 
 // API Key validation middleware
 function validateApiKey(req, res, next) {
-  // Skip validation for certain routes
+  // Skip validation for certain routes (public routes)
   const publicRoutes = ['/api/status', '/api/metrics', '/status'];
-  const publicPathPrefixes = ['/api/orders'];
 
-  // Check if route is public - use either exact match or prefix
-  const isPublic = publicRoutes.includes(req.path) || 
-                  publicPathPrefixes.some(prefix => req.path.startsWith(prefix));
+  // Routes that should be available for dashboard but protected for modifications
+  const dashboardRoutes = ['/api/orders'];
 
-  console.log(`Checking route: ${req.path}, public: ${isPublic}`);
-  if (isPublic) {
+  // Log what path is being checked
+  console.log(`Checking route: ${req.path}`);
+
+  // Allow public routes without authentication
+  if (publicRoutes.includes(req.path)) {
+    return next();
+  }
+
+  // For dashboard routes, allow GET requests without API key but require API key for other methods
+  if (dashboardRoutes.includes(req.path) && req.method === 'GET') {
     return next();
   }
 
@@ -42,7 +48,7 @@ function logRequests(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, X-API-Key');
-    
+
     // Handle preflight requests
     if (method === 'OPTIONS') {
       return res.status(200).end();
